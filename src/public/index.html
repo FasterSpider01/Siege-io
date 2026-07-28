@@ -1,367 +1,3261 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siege Attack - Massive Multiplayer Arena & Base Building Game</title>
-    <meta name="description" content="Play Siege Attack live! Join a massive 2500x2500 tactical multiplayer world, build 20 unique structures, level up to 20, and battle players worldwide.">
-    <meta name="keywords" content="Siege Attack, multiplayer game, browser game, io game, base building game, survival game">
-    <meta property="og:title" content="Siege Attack">
-    <meta property="og:description" content="Real-time multiplayer arena survival game with 20 building structures and cross-platform play.">
-    <meta property="og:type" content="website">
-    <style>
-        * { box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; overflow: hidden; background: #07070a; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; background: rgba(10, 10, 15, 0.75); padding: 12px 18px; border-radius: 10px; border: 1px solid rgba(0,255,204,0.3); backdrop-filter: blur(8px); box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        #ui h2 { margin: 0; font-size: 15px; letter-spacing: 1px; color: #00ffcc; text-shadow: 0 0 10px rgba(0,255,204,0.6); }
-        
-        #buildMenu { position: absolute; bottom: 15px; left: 15px; background: rgba(12, 12, 18, 0.9); padding: 15px; border-radius: 12px; max-height: 220px; width: 340px; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,0.7); }
-        .build-category-title { grid-column: span 2; font-size: 11px; text-transform: uppercase; color: #00ffcc; margin-top: 4px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px; }
-        .build-btn { background: linear-gradient(135deg, #1a1a24, #262636); color: white; border: 1px solid rgba(255,255,255,0.15); padding: 8px 10px; cursor: pointer; font-size: 11px; border-radius: 6px; font-weight: 600; text-align: left; transition: all 0.2s ease; display: flex; justify-content: space-between; align-items: center; }
-        .build-btn:hover, .build-btn.active { background: linear-gradient(135deg, #00ffcc, #00aa88); color: #000; border-color: #00ffcc; box-shadow: 0 0 12px rgba(0,255,204,0.5); }
-        .cost-tag { background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #ffcc00; }
-        .build-btn:hover .cost-tag, .build-btn.active .cost-tag { background: rgba(0,0,0,0.2); color: #000; }
 
-        #topBar { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; }
-        button.action { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 16px; cursor: pointer; border-radius: 8px; font-weight: 600; backdrop-filter: blur(5px); transition: all 0.2s; }
-        button.action:hover { background: rgba(0, 255, 204, 0.2); border-color: #00ffcc; color: #00ffcc; }
+<meta charset="UTF-8">
 
-        #controls { position: absolute; bottom: 25px; right: 25px; display: none; gap: 15px; }
-        .mobile-btn { width: 75px; height: 75px; background: rgba(0, 255, 204, 0.2); border-radius: 50%; border: 2px solid #00ffcc; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: #00ffcc; user-select: none; box-shadow: 0 0 15px rgba(0,255,204,0.3); cursor: pointer; }
-        #joystick { position: absolute; bottom: 30px; left: 360px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; display: none; touch-action: none; }
-        #joystickKnob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(0, 255, 204, 0.6); border-radius: 50%; box-shadow: 0 0 10px #00ffcc; }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        #crosshair { position: absolute; width: 10px; height: 10px; border: 2px solid rgba(0,255,204,0.7); border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); display: none; }
-    </style>
+
+<title>
+Siege Attack - Multiplayer Base Building Arena
+</title>
+
+
+<meta name="description"
+content="Play Siege Attack, a fast real-time multiplayer survival arena. Build bases, collect XP, gather Scrap, and battle for territory.">
+
+
+<meta name="keywords"
+content="Siege Attack, io game, multiplayer browser game, survival game, base building game">
+
+
+<meta property="og:title"
+content="Siege Attack">
+
+
+<meta property="og:description"
+content="Real-time multiplayer combat, building, leveling, and survival arena.">
+
+
+<meta property="og:type"
+content="website">
+
+
+
+<style>
+
+
+*{
+    box-sizing:border-box;
+    user-select:none;
+}
+
+
+html,
+body{
+
+    margin:0;
+
+    padding:0;
+
+    overflow:hidden;
+
+    background:#050509;
+
+    font-family:
+    Arial,
+    sans-serif;
+
+}
+
+
+canvas{
+
+    display:block;
+
+}
+
+
+
+#hud{
+
+    position:absolute;
+
+    top:15px;
+
+    left:15px;
+
+
+    padding:15px;
+
+
+    min-width:230px;
+
+
+    background:
+    rgba(10,10,20,.85);
+
+
+    border:
+    1px solid
+    rgba(0,255,204,.4);
+
+
+    border-radius:12px;
+
+
+    color:white;
+
+
+    backdrop-filter:
+    blur(10px);
+
+
+    z-index:5;
+
+}
+
+
+
+#logo{
+
+    color:#00ffcc;
+
+    font-size:20px;
+
+    font-weight:bold;
+
+}
+
+
+
+#stats{
+
+    margin-top:10px;
+
+    line-height:20px;
+
+    font-size:13px;
+
+}
+
+
+
+#crosshair{
+
+
+    position:absolute;
+
+
+    width:18px;
+
+    height:18px;
+
+
+    border:
+    2px solid
+    #00ffcc;
+
+
+    border-radius:50%;
+
+
+    pointer-events:none;
+
+
+    transform:
+    translate(-50%,-50%);
+
+
+    display:none;
+
+
+    z-index:10;
+
+}
+
+
+
+</style>
+
+
 </head>
+
+
 <body>
-    <div id="topBar">
-        <button class="action" onclick="toggleFullscreen()">Fullscreen</button>
-    </div>
-    <div id="ui">
-        <h2 id="hudStats">Level: 1 | HP: 100/100 | XP: 0 | Scrap: 50</h2>
-    </div>
-    <div id="buildMenu"></div>
-    <div id="joystick"><div id="joystickKnob"></div></div>
-    <div id="controls">
-        <div class="mobile-btn" id="buildActionBtn">BUILD</div>
-        <div class="mobile-btn" id="fireBtn">FIRE</div>
-    </div>
-    <div id="crosshair"></div>
-    <canvas id="gameCanvas"></canvas>
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+
+<div id="hud">
+
+<div id="logo">
+⚔ Siege Attack
+</div>
+
+
+<div id="stats">
+Connecting...
+</div>
+
+
+</div>
+
+
+
+<div id="crosshair"></div>
+
+
+
+<canvas id="gameCanvas"></canvas>
+
+
+
+
+<script>
+
+
+// ======================================================
+// ENGINE SETTINGS
+// ======================================================
+
+
+const WORLD_SIZE = 2500;
+
+const TILE_SIZE = 50;
+
+
+const canvas =
+document.getElementById(
+"gameCanvas"
+);
+
+
+const ctx =
+canvas.getContext(
+"2d"
+);
+
+
+
+function resizeCanvas(){
+
+    canvas.width =
+    window.innerWidth;
+
+
+    canvas.height =
+    window.innerHeight;
+
+}
+
+
+window.addEventListener(
+"resize",
+resizeCanvas
+);
+
+
+resizeCanvas();
+
+
+
+
+
+// ======================================================
+// GAME DATA
+// ======================================================
+
+
+let playerId = null;
+
+
+
+let gameState = {
+
+
+    players:{},
+
+
+    structures:[],
+
+
+    projectiles:[],
+
+
+    orbs:[],
+
+
+    scrap:[]
+
+};
+
+
+
+let localPlayer = {
+
+
+    x:1250,
+
+
+    y:1250,
+
+
+    vx:0,
+
+
+    vy:0
+
+};
+
+
+
+
+
+// ======================================================
+// CAMERA SYSTEM
+// ======================================================
+
+
+const camera = {
+
+
+    x:1250,
+
+
+    y:1250,
+
+
+    smooth:0.12
+
+
+};
+
+
+
+function updateCamera(){
+
+
+    camera.x +=
+    (
+        localPlayer.x -
+        camera.x
+    )
+    *
+    camera.smooth;
+
+
+
+    camera.y +=
+    (
+        localPlayer.y -
+        camera.y
+    )
+    *
+    camera.smooth;
+
+
+}
+
+
+
+
+
+// ======================================================
+// INPUT SYSTEM
+// ======================================================
+
+
+const keys={};
+
+
+
+window.addEventListener(
+"keydown",
+event=>{
+
+
+    keys[
+        event.key.toLowerCase()
+    ]=true;
+
+
+});
+
+
+
+window.addEventListener(
+"keyup",
+event=>{
+
+
+    keys[
+        event.key.toLowerCase()
+    ]=false;
+
+
+});
+
+
+
+
+
+const mouse={
+
+    x:0,
+
+    y:0
+
+};
+
+
+
+
+window.addEventListener(
+"mousemove",
+event=>{
+
+
+    mouse.x =
+    event.clientX;
+
+
+    mouse.y =
+    event.clientY;
+
+
+
+    const cross =
+    document.getElementById(
+        "crosshair"
+    );
+
+
+    cross.style.display="block";
+
+
+    cross.style.left =
+    mouse.x+"px";
+
+
+    cross.style.top =
+    mouse.y+"px";
+
+
+});
+
+
+
+
+
+
+
+// ======================================================
+// NETWORKING
+// ======================================================
+
+
+async function joinGame(){
+
+
+    try{
+
+
+        const response =
+        await fetch(
+            "/join",
+            {
+                method:"POST"
+            }
+        );
+
+
+
+        const data =
+        await response.json();
+
+
+
+        playerId =
+        data.id;
+
+
+
+        localPlayer.x =
+        data.player.x;
+
+
+        localPlayer.y =
+        data.player.y;
+
+
+
+    }
+
+    catch(error){
+
+        console.log(
+            "Server unavailable"
+        );
+
+    }
+
+
+}
+
+
+
+
+
+async function updateState(){
+
+
+    try{
+
+
+        const response =
+        await fetch(
+            "/state"
+        );
+
+
+
+        gameState =
+        await response.json();
+
+
+
+        if(
+            playerId &&
+            gameState.players[playerId]
+        ){
+
+
+            const p =
+            gameState.players[playerId];
+
+
+
+            document.getElementById(
+                "stats"
+            ).innerHTML = `
+
+            Level:
+            ${p.level}<br>
+
+            HP:
+            ${p.hp}/${p.max_hp}<br>
+
+            Scrap:
+            ${p.scrap}<br>
+
+            XP:
+            ${p.xp}
+
+            `;
+
+
         }
-        window.addEventListener('resize', resize);
-        resize();
 
-        const structuresMeta = {
-            "Defenses": ["Wood Wall", "Stone Wall", "Iron Wall", "Gate", "Vault", "Barbed Wire"],
-            "Traps & Hazards": ["Spike Trap", "Flame Trap", "Ice Trap", "Mine", "Tesla Coil"],
-            "Support & Utility": ["Healing Totem", "Speed Pad", "Shield Gen", "Radar Tower", "Bounce Pad", "Ammo Station", "Teleporter", "Mortar", "Mini Turret"]
-        };
 
-        const costs = {
-            "Wood Wall": 20, "Stone Wall": 40, "Iron Wall": 70, "Gate": 50, "Vault": 100, "Barbed Wire": 30,
-            "Spike Trap": 25, "Flame Trap": 45, "Ice Trap": 40, "Mine": 35, "Tesla Coil": 90,
-            "Healing Totem": 60, "Speed Pad": 30, "Shield Gen": 80, "Radar Tower": 70, "Bounce Pad": 35,
-            "Ammo Station": 50, "Teleporter": 120, "Mortar": 100, "Mini Turret": 85
-        };
 
-        const buildMenu = document.getElementById("buildMenu");
-        let selectedStructure = "Wood Wall";
+    }
 
-        for (let cat in structuresMeta) {
-            const catTitle = document.createElement("div");
-            catTitle.className = "build-category-title";
-            catTitle.innerText = cat;
-            buildMenu.appendChild(catTitle);
+    catch(error){}
 
-            structuresMeta[cat].forEach(struct => {
-                const btn = document.createElement("div");
-                btn.className = "build-btn" + (struct === selectedStructure ? " active" : "");
-                btn.innerHTML = `<span>${struct}</span><span class="cost-tag">${costs[struct]} Scrap</span>`;
-                btn.onclick = () => {
-                    document.querySelectorAll('.build-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    selectedStructure = struct;
-                };
-                buildMenu.appendChild(btn);
-            });
+
+
+}
+
+
+
+setInterval(
+updateState,
+1000/30
+);
+
+
+
+
+
+
+
+// ======================================================
+// PLAYER MOVEMENT
+// ======================================================
+
+
+function movementTick(){
+
+
+    if(!playerId)
+    return;
+
+
+
+    let vx=0;
+
+    let vy=0;
+
+
+
+    if(
+        keys["w"] ||
+        keys["arrowup"]
+    )
+    vy=-1;
+
+
+
+    if(
+        keys["s"] ||
+        keys["arrowdown"]
+    )
+    vy=1;
+
+
+
+    if(
+        keys["a"] ||
+        keys["arrowleft"]
+    )
+    vx=-1;
+
+
+
+    if(
+        keys["d"] ||
+        keys["arrowright"]
+    )
+    vx=1;
+
+
+
+    localPlayer.x += vx*5;
+
+    localPlayer.y += vy*5;
+
+
+
+    localPlayer.x =
+    Math.max(
+        0,
+        Math.min(
+            WORLD_SIZE,
+            localPlayer.x
+        )
+    );
+
+
+
+    localPlayer.y =
+    Math.max(
+        0,
+        Math.min(
+            WORLD_SIZE,
+            localPlayer.y
+        )
+    );
+
+
+
+    fetch(
+        "/update",
+        {
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":
+            "application/json"
+        },
+
+
+        body:
+        JSON.stringify({
+
+            id:playerId,
+
+            vx:vx,
+
+            vy:vy
+
+        })
+
+
         }
+    );
 
-        let playerId = null;
-        let gameState = { players: {}, orbs: [], structures: [], projectiles: [] };
-        let myPos = { x: 1250, y: 1250 };
-        let targetPos = { x: 1250, y: 1250 };
-        const keys = {};
-        let screenShake = 0;
 
-        window.addEventListener('keydown', e => {
-            keys[e.key.toLowerCase()] = true;
-            if(e.key >= '1' && e.key <= '9') {
-                let allStructs = Object.values(structuresMeta).flat();
-                let idx = parseInt(e.key) - 1;
-                if(allStructs[idx]) {
-                    selectedStructure = allStructs[idx];
-                    document.querySelectorAll('.build-btn').forEach((b) => {
-                        if(b.innerText.includes(selectedStructure)) b.classList.add('active');
-                        else b.classList.remove('active');
-                    });
-                }
-            }
-        });
-        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+}
 
-        window.addEventListener('mousemove', e => {
-            const ch = document.getElementById('crosshair');
-            ch.style.display = 'block';
-            ch.style.left = e.clientX + 'px';
-            ch.style.top = e.clientY + 'px';
-        });
 
-        window.addEventListener('mousedown', e => {
-            if (!playerId || e.target.closest('#buildMenu') || e.target.closest('#topBar')) return;
-            const worldX = myPos.x + (e.clientX - canvas.width / 2);
-            const worldY = myPos.y + (e.clientY - canvas.height / 2);
-            
-            if (e.button === 0) {
-                const angle = Math.atan2(e.clientY - canvas.height / 2, e.clientX - canvas.width / 2);
-                fetch('/shoot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ playerId: playerId, angle: angle })
-                });
-            } else if (e.button === 2) {
-                fetch('/build', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ playerId: playerId, type: selectedStructure, x: worldX, y: worldY })
-                }).then(res => res.json()).then(data => {
-                    if (data.built) screenShake = 6;
-                });
-                e.preventDefault();
-            }
-        });
 
-        window.addEventListener('contextmenu', e => e.preventDefault());
+setInterval(
+movementTick,
+1000/20
+);
 
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-            document.getElementById('controls').style.display = 'flex';
-            document.getElementById('joystick').style.display = 'block';
 
-            let joystickActive = false;
-            let joyCenter = { x: 0, y: 0 };
-            const joy = document.getElementById('joystick');
-            const knob = document.getElementById('joystickKnob');
 
-            joy.addEventListener('touchstart', e => {
-                joystickActive = true;
-                const rect = joy.getBoundingClientRect();
-                joyCenter = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
-            });
 
-            window.addEventListener('touchmove', e => {
-                if (!joystickActive) return;
-                const touch = e.touches[0];
-                const dx = touch.clientX - joyCenter.x;
-                const dy = touch.clientY - joyCenter.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const maxDist = 35;
-                const angle = Math.atan2(dy, dx);
-                const clampedDist = Math.min(dist, maxDist);
 
-                knob.style.transform = `translate(${Math.cos(angle)*clampedDist}px, ${Math.sin(angle)*clampedDist}px)`;
-                
-                let speed = 8;
-                targetPos.x += Math.cos(angle) * (clampedDist/maxDist) * speed;
-                targetPos.y += Math.sin(angle) * (clampedDist/maxDist) * speed;
-            });
 
-            window.addEventListener('touchend', () => {
-                joystickActive = false;
-                knob.style.transform = `translate(0px, 0px)`;
-            });
+// ======================================================
+// CAMERA TRANSFORM
+// ======================================================
 
-            document.getElementById('fireBtn').addEventListener('touchstart', () => {
-                if (!playerId) return;
-                const angle = Math.random() * Math.PI * 2;
-                fetch('/shoot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ playerId: playerId, angle: angle })
-                });
-            });
 
-            document.getElementById('buildActionBtn').addEventListener('touchstart', () => {
-                if (!playerId) return;
-                fetch('/build', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ playerId: playerId, type: selectedStructure, x: myPos.x + 40, y: myPos.y })
-                });
-            });
-        }
+function worldStart(){
 
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                if (document.exitFullscreen) document.exitFullscreen();
-            }
-        }
 
-        fetch('/join', { method: 'POST' })
-            .then(res => res.json())
-            .then(data => { playerId = data.playerId; });
+    ctx.save();
 
-        setInterval(() => {
-            if (!playerId) return;
-            fetch('/state')
-                .then(res => res.json())
-                .then(data => {
-                    gameState = data;
-                    if (gameState.players[playerId]) {
-                        let p = gameState.players[playerId];
-                        document.getElementById('hudStats').innerText = `Level: ${p.level} | HP: ${p.hp}/${p.maxHp} | XP: ${p.xp} | Scrap: ${p.scrap}`;
-                    }
-                });
-        }, 1000 / 30);
 
-        function render() {
-            let speed = 9;
-            if (keys['w'] || keys['arrowup']) targetPos.y -= speed;
-            if (keys['s'] || keys['arrowdown']) targetPos.y += speed;
-            if (keys['a'] || keys['arrowleft']) targetPos.x -= speed;
-            if (keys['d'] || keys['arrowright']) targetPos.x += speed;
+    ctx.translate(
 
-            targetPos.x = Math.max(0, Math.min(2500, targetPos.x));
-            targetPos.y = Math.max(0, Math.min(2500, targetPos.y));
+        canvas.width/2 -
+        camera.x,
 
-            myPos.x += (targetPos.x - myPos.x) * 0.35;
-            myPos.y += (targetPos.y - myPos.y) * 0.35;
 
-            if (Math.random() < 0.4 && playerId) {
-                fetch('/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: playerId, x: myPos.x, y: myPos.y })
-                }).catch(() => {});
-            }
+        canvas.height/2 -
+        camera.y
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            
-            if (screenShake > 0) {
-                ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
-                screenShake *= 0.9;
-                if (screenShake < 0.5) screenShake = 0;
-            }
+    );
 
-            ctx.translate(canvas.width / 2 - myPos.x, canvas.height / 2 - myPos.y);
 
-            // Tactical Grid Background (50x50 tile units)
-            ctx.fillStyle = "#0d0d12";
-            ctx.fillRect(0, 0, 2500, 2500);
+}
 
-            ctx.strokeStyle = "rgba(0, 255, 204, 0.05)";
-            ctx.lineWidth = 1;
-            const tileSize = 50;
-            for (let x = 0; x <= 2500; x += tileSize) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2500); ctx.stroke();
-            }
-            for (let y = 0; y <= 2500; y += tileSize) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(2500, y); ctx.stroke();
-            }
 
-            ctx.strokeStyle = "#00ffcc";
-            ctx.lineWidth = 6;
-            ctx.shadowColor = "rgba(0, 255, 204, 0.6)";
-            ctx.shadowBlur = 15;
-            ctx.strokeRect(0, 0, 2500, 2500);
-            ctx.shadowBlur = 0;
 
-            // Orbs
-            gameState.orbs.forEach(orb => {
-                ctx.save();
-                ctx.shadowColor = "#ffcc00";
-                ctx.shadowBlur = 10;
-                ctx.fillStyle = "#ffcc00";
-                ctx.beginPath(); ctx.arc(orb.x, orb.y, 7, 0, Math.PI * 2); ctx.fill();
-                ctx.restore();
-            });
+function worldEnd(){
 
-            // Structures
-            gameState.structures.forEach(s => {
-                ctx.save();
-                ctx.fillStyle = s.type.includes("Wall") ? "#3b3b54" : (s.type.includes("Trap") ? "#8b0000" : "#2e5b88");
-                ctx.strokeStyle = "#00ffcc";
-                ctx.lineWidth = 2;
-                ctx.fillRect(s.x - 20, s.y - 20, 40, 40);
-                ctx.strokeRect(s.x - 20, s.y - 20, 40, 40);
-                
-                ctx.fillStyle = "#fff";
-                ctx.font = "9px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(s.type.split(" ")[0], s.x, s.y + 3);
 
-                ctx.fillStyle = "rgba(0,0,0,0.6)";
-                ctx.fillRect(s.x - 20, s.y - 28, 40, 5);
-                ctx.fillStyle = "#00ffcc";
-                ctx.fillRect(s.x - 20, s.y - 28, 40 * (s.hp / s.maxHp), 5);
-                ctx.restore();
-            });
+    ctx.restore();
 
-            // Projectiles
-            if (gameState.projectiles) {
-                ctx.fillStyle = "#ff3366";
-                gameState.projectiles.forEach(proj => {
-                    ctx.save();
-                    ctx.shadowColor = "#ff3366";
-                    ctx.shadowBlur = 8;
-                    ctx.beginPath(); ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2); ctx.fill();
-                    ctx.restore();
-                });
-            }
 
-            // Players
-            for (let id in gameState.players) {
-                let p = gameState.players[id];
-                let isMe = id === playerId;
+}
 
-                ctx.save();
-                ctx.shadowColor = isMe ? "#00ffcc" : "#ff3366";
-                ctx.shadowBlur = 15;
-                ctx.fillStyle = isMe ? "#00ffcc" : "#ff3366";
-                ctx.beginPath(); ctx.arc(p.x, p.y, 22, 0, Math.PI * 2); ctx.fill();
-                
-                ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.restore();
 
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 12px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(`Lvl ${p.level} (${p.scrap} Scrap)`, p.x, p.y - 34);
 
-                ctx.fillStyle = "rgba(0,0,0,0.6)";
-                ctx.fillRect(p.x - 22, p.y - 50, 44, 6);
-                ctx.fillStyle = "#00ffcc";
-                ctx.fillRect(p.x - 22, p.y - 50, 44 * (p.hp / p.maxHp), 6);
-            }
 
-            ctx.restore();
-            requestAnimationFrame(render);
-        }
-        requestAnimationFrame(render);
-    </script>
+
+
+// ======================================================
+// WORLD BACKGROUND
+// ======================================================
+
+
+function drawWorld(){
+
+
+
+    ctx.fillStyle =
+    "#080811";
+
+
+    ctx.fillRect(
+        0,
+        0,
+        WORLD_SIZE,
+        WORLD_SIZE
+    );
+
+
+
+    ctx.strokeStyle =
+    "rgba(0,255,204,.06)";
+
+
+
+    for(
+        let x=0;
+        x<=WORLD_SIZE;
+        x+=TILE_SIZE
+    ){
+
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x,
+            0
+        );
+
+
+        ctx.lineTo(
+            x,
+            WORLD_SIZE
+        );
+
+
+        ctx.stroke();
+
+
+    }
+
+
+
+    for(
+        let y=0;
+        y<=WORLD_SIZE;
+        y+=TILE_SIZE
+    ){
+
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            0,
+            y
+        );
+
+
+        ctx.lineTo(
+            WORLD_SIZE,
+            y
+        );
+
+
+        ctx.stroke();
+
+
+    }
+
+
+
+
+    ctx.strokeStyle="#00ffcc";
+
+    ctx.lineWidth=5;
+
+
+    ctx.strokeRect(
+        0,
+        0,
+        WORLD_SIZE,
+        WORLD_SIZE
+    );
+
+
+}
+
+
+
+
+
+// ======================================================
+// MAIN LOOP
+// ======================================================
+
+
+function gameLoop(){
+
+
+    updateCamera();
+
+
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+
+    worldStart();
+
+
+
+    drawWorld();
+
+
+
+    // PART 2 WILL ADD:
+    // drawOrbs()
+    // drawStructures()
+    // drawProjectiles()
+    // drawPlayers()
+
+
+
+    worldEnd();
+
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+
+}
+
+
+
+
+
+joinGame();
+
+gameLoop();
+
+
+// IMPORTANT:
+// DO NOT CLOSE SCRIPT/BODY/HTML HERE.
+// PART 2 CONTINUES BELOW.
+// ======================================================
+// RENDERING HELPERS
+// ======================================================
+
+
+function visibleEntity(x,y,padding=100){
+
+    return (
+
+        x >
+        camera.x -
+        canvas.width/2 -
+        padding
+
+        &&
+
+        x <
+        camera.x +
+        canvas.width/2 +
+        padding
+
+
+        &&
+
+
+        y >
+        camera.y -
+        canvas.height/2 -
+        padding
+
+
+        &&
+
+
+        y <
+        camera.y +
+        canvas.height/2 +
+        padding
+
+    );
+
+}
+
+
+
+
+
+function drawHealthBar(
+    x,
+    y,
+    width,
+    hp,
+    maxHp,
+    color="#00ffcc"
+){
+
+    const ratio =
+    Math.max(
+        0,
+        Math.min(
+            1,
+            hp/maxHp
+        )
+    );
+
+
+    ctx.fillStyle=
+    "rgba(0,0,0,.6)";
+
+
+    ctx.fillRect(
+        x-width/2,
+        y,
+        width,
+        6
+    );
+
+
+    ctx.fillStyle=color;
+
+
+    ctx.fillRect(
+        x-width/2,
+        y,
+        width*ratio,
+        6
+    );
+
+}
+
+
+
+
+
+// ======================================================
+// XP ORBS
+// ======================================================
+
+
+function drawOrbs(){
+
+
+    if(!gameState.orbs)
+    return;
+
+
+
+    for(
+        const orb of gameState.orbs
+    ){
+
+
+        if(
+            !visibleEntity(
+                orb.x,
+                orb.y
+            )
+        )
+        continue;
+
+
+
+        ctx.save();
+
+
+        ctx.shadowColor =
+        "#ffcc00";
+
+
+        ctx.shadowBlur =
+        20;
+
+
+        ctx.fillStyle =
+        "#ffcc00";
+
+
+
+        ctx.beginPath();
+
+
+        ctx.arc(
+            orb.x,
+            orb.y,
+            8,
+            0,
+            Math.PI*2
+        );
+
+
+        ctx.fill();
+
+
+
+        ctx.restore();
+
+
+    }
+
+
+}
+
+
+
+
+
+// ======================================================
+// SCRAP DROPS
+// ======================================================
+
+
+function drawScrap(){
+
+
+    if(!gameState.scrap)
+    return;
+
+
+
+    for(
+        const item of gameState.scrap
+    ){
+
+
+        if(
+            !visibleEntity(
+                item.x,
+                item.y
+            )
+        )
+        continue;
+
+
+
+        ctx.save();
+
+
+        ctx.shadowColor =
+        "#00ffff";
+
+
+        ctx.shadowBlur =
+        12;
+
+
+
+        ctx.fillStyle =
+        "#00ffff";
+
+
+        ctx.beginPath();
+
+
+        ctx.moveTo(
+            item.x,
+            item.y-7
+        );
+
+
+        ctx.lineTo(
+            item.x+7,
+            item.y
+        );
+
+
+        ctx.lineTo(
+            item.x,
+            item.y+7
+        );
+
+
+        ctx.lineTo(
+            item.x-7,
+            item.y
+        );
+
+
+        ctx.closePath();
+
+
+        ctx.fill();
+
+
+        ctx.restore();
+
+
+    }
+
+
+}
+
+
+
+
+
+// ======================================================
+// STRUCTURES
+// ======================================================
+
+
+function structureColor(type){
+
+
+    if(
+        type.includes("Wall")
+        ||
+        type==="Gate"
+        ||
+        type==="Vault"
+    )
+    return "#64748b";
+
+
+
+    if(
+        type.includes("Trap")
+        ||
+        type==="Mine"
+        ||
+        type==="Tesla Coil"
+    )
+    return "#ef4444";
+
+
+
+    return "#3b82f6";
+
+
+}
+
+
+
+
+
+function drawStructures(){
+
+
+    if(!gameState.structures)
+    return;
+
+
+
+    for(
+        const s of gameState.structures
+    ){
+
+
+        if(
+            !visibleEntity(
+                s.x,
+                s.y
+            )
+        )
+        continue;
+
+
+
+        ctx.save();
+
+
+
+        ctx.fillStyle =
+        structureColor(
+            s.type
+        );
+
+
+        ctx.strokeStyle =
+        "#ffffff";
+
+
+
+        ctx.lineWidth =
+        2;
+
+
+
+        ctx.shadowColor =
+        structureColor(
+            s.type
+        );
+
+
+        ctx.shadowBlur =
+        10;
+
+
+
+        ctx.fillRect(
+            s.x-22,
+            s.y-22,
+            44,
+            44
+        );
+
+
+
+        ctx.strokeRect(
+            s.x-22,
+            s.y-22,
+            44,
+            44
+        );
+
+
+
+        ctx.shadowBlur=0;
+
+
+
+        ctx.fillStyle =
+        "#fff";
+
+
+        ctx.font =
+        "10px Arial";
+
+
+        ctx.textAlign =
+        "center";
+
+
+
+        ctx.fillText(
+            s.type.split(" ")[0],
+            s.x,
+            s.y+4
+        );
+
+
+
+        drawHealthBar(
+            s.x,
+            s.y-35,
+            50,
+            s.hp,
+            s.max_hp,
+            "#22c55e"
+        );
+
+
+
+        ctx.restore();
+
+
+    }
+
+
+}
+
+
+
+
+
+
+// ======================================================
+// PROJECTILES
+// ======================================================
+
+
+function drawProjectiles(){
+
+
+    if(!gameState.projectiles)
+    return;
+
+
+
+    for(
+        const p of gameState.projectiles
+    ){
+
+
+        if(
+            !visibleEntity(
+                p.x,
+                p.y
+            )
+        )
+        continue;
+
+
+
+        ctx.save();
+
+
+        ctx.shadowColor =
+        "#ff3366";
+
+
+        ctx.shadowBlur =
+        15;
+
+
+        ctx.fillStyle =
+        "#ff3366";
+
+
+        ctx.beginPath();
+
+
+        ctx.arc(
+            p.x,
+            p.y,
+            6,
+            0,
+            Math.PI*2
+        );
+
+
+        ctx.fill();
+
+
+
+        ctx.restore();
+
+
+    }
+
+
+}
+
+
+
+
+
+// ======================================================
+// PLAYERS
+// ======================================================
+
+
+function playerColor(level){
+
+
+    if(level>=15)
+    return "#ff00ff";
+
+
+    if(level>=10)
+    return "#ff9900";
+
+
+    if(level>=5)
+    return "#00ffff";
+
+
+    return "#00ffcc";
+
+
+}
+
+
+
+
+
+function drawPlayers(){
+
+
+    if(!gameState.players)
+    return;
+
+
+
+    for(
+        const id in gameState.players
+    ){
+
+
+        const p =
+        gameState.players[id];
+
+
+
+        if(
+            !visibleEntity(
+                p.x,
+                p.y
+            )
+        )
+        continue;
+
+
+
+        const mine =
+        id===playerId;
+
+
+
+        ctx.save();
+
+
+
+        ctx.shadowColor =
+        playerColor(
+            p.level
+        );
+
+
+        ctx.shadowBlur =
+        18;
+
+
+
+        ctx.fillStyle =
+        mine
+        ?
+        "#ffffff"
+        :
+        playerColor(
+            p.level
+        );
+
+
+
+        ctx.beginPath();
+
+
+        ctx.arc(
+            p.x,
+            p.y,
+            22,
+            0,
+            Math.PI*2
+        );
+
+
+        ctx.fill();
+
+
+
+        ctx.shadowBlur=0;
+
+
+
+        ctx.strokeStyle =
+        "#ffffff";
+
+
+        ctx.lineWidth=3;
+
+
+        ctx.stroke();
+
+
+
+        ctx.restore();
+
+
+
+
+        ctx.fillStyle =
+        "#fff";
+
+
+        ctx.font =
+        "bold 12px Arial";
+
+
+        ctx.textAlign =
+        "center";
+
+
+
+        ctx.fillText(
+
+            "LVL "+p.level,
+
+            p.x,
+
+            p.y-35
+
+        );
+
+
+
+        drawHealthBar(
+
+            p.x,
+
+            p.y-28,
+
+            55,
+
+            p.hp,
+
+            p.max_hp,
+
+            "#00ff66"
+
+        );
+
+
+    }
+
+
+}
+
+
+
+
+
+// ======================================================
+// UPDATE MAIN RENDER PIPELINE
+// ======================================================
+
+
+const oldGameLoop = gameLoop;
+
+
+gameLoop = function(){
+
+
+    updateCamera();
+
+
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+
+    worldStart();
+
+
+
+    drawWorld();
+
+
+    // New render layers
+
+    drawOrbs();
+
+    drawScrap();
+
+    drawStructures();
+
+    drawProjectiles();
+
+    drawPlayers();
+
+
+
+    worldEnd();
+
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+
+};
+
+// ======================================================
+// BUILDING SYSTEM
+// ======================================================
+
+
+const BUILDINGS = [
+
+"Wood Wall",
+"Stone Wall",
+"Iron Wall",
+"Gate",
+"Vault",
+"Barbed Wire",
+
+"Spike Trap",
+"Flame Trap",
+"Ice Trap",
+"Mine",
+"Tesla Coil",
+
+"Healing Totem",
+"Speed Pad",
+"Shield Gen",
+"Radar Tower",
+"Bounce Pad",
+"Ammo Station",
+"Teleporter",
+"Mortar",
+"Mini Turret"
+
+];
+
+
+
+let selectedBuild =
+"Wood Wall";
+
+
+let buildMode=false;
+
+
+let mouseWorld={
+
+x:0,
+
+y:0
+
+};
+
+
+
+
+
+// ======================================================
+// MOUSE WORLD POSITION
+// ======================================================
+
+
+function updateMouseWorld(){
+
+
+mouseWorld.x =
+camera.x +
+(
+mouse.x -
+canvas.width/2
+);
+
+
+mouseWorld.y =
+camera.y +
+(
+mouse.y -
+canvas.height/2
+);
+
+
+}
+
+
+
+
+window.addEventListener(
+"mousemove",
+()=>{
+
+updateMouseWorld();
+
+});
+
+
+
+
+
+
+// ======================================================
+// BUILD PREVIEW
+// ======================================================
+
+
+function drawBuildPreview(){
+
+
+if(!buildMode)
+return;
+
+
+
+let x =
+Math.round(
+mouseWorld.x /
+TILE_SIZE
+)
+*
+TILE_SIZE;
+
+
+
+let y =
+Math.round(
+mouseWorld.y /
+TILE_SIZE
+)
+*
+TILE_SIZE;
+
+
+
+ctx.save();
+
+
+
+ctx.globalAlpha=.45;
+
+
+
+ctx.fillStyle=
+"#00ffcc";
+
+
+
+ctx.fillRect(
+
+x-25,
+
+y-25,
+
+50,
+
+50
+
+);
+
+
+
+ctx.strokeStyle=
+"#ffffff";
+
+
+ctx.strokeRect(
+
+x-25,
+
+y-25,
+
+50,
+
+50
+
+);
+
+
+
+ctx.globalAlpha=1;
+
+
+
+ctx.fillStyle="#fff";
+
+
+ctx.font=
+"12px Arial";
+
+
+ctx.textAlign=
+"center";
+
+
+
+ctx.fillText(
+
+selectedBuild,
+
+x,
+
+y+5
+
+);
+
+
+
+ctx.restore();
+
+
+}
+
+
+
+
+
+
+// ======================================================
+// BUILD REQUEST
+// ======================================================
+
+
+function placeStructure(){
+
+
+if(!playerId)
+return;
+
+
+
+let x =
+Math.round(
+mouseWorld.x /
+TILE_SIZE
+)
+*
+TILE_SIZE;
+
+
+let y =
+Math.round(
+mouseWorld.y /
+TILE_SIZE
+)
+*
+TILE_SIZE;
+
+
+
+fetch(
+"/build",
+{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":
+"application/json"
+
+},
+
+body:
+JSON.stringify({
+
+playerId,
+
+type:selectedBuild,
+
+x,
+
+y
+
+})
+
+}
+
+);
+
+
+
+screenShake=8;
+
+
+
+spawnParticles(
+x,
+y,
+"#00ffcc",
+15
+);
+
+
+}
+
+
+
+
+
+
+
+// ======================================================
+// HOTKEY BUILD SELECT
+// ======================================================
+
+
+window.addEventListener(
+"keydown",
+e=>{
+
+
+let num =
+parseInt(e.key);
+
+
+
+if(
+num>=1 &&
+num<=9
+){
+
+selectedBuild =
+BUILDINGS[num-1];
+
+}
+
+
+
+if(
+e.key==="b"
+||
+e.key==="B"
+){
+
+buildMode =
+!buildMode;
+
+}
+
+
+
+});
+
+
+
+
+
+
+
+// ======================================================
+// MOUSE COMBAT
+// ======================================================
+
+
+
+window.addEventListener(
+"mousedown",
+e=>{
+
+
+if(
+e.button===0
+&&
+!buildMode
+){
+
+
+let angle =
+Math.atan2(
+
+mouse.y -
+canvas.height/2,
+
+mouse.x -
+canvas.width/2
+
+);
+
+
+
+fetch(
+"/shoot",
+{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":
+"application/json"
+
+},
+
+body:
+
+JSON.stringify({
+
+playerId,
+
+angle
+
+})
+
+}
+
+);
+
+
+
+}
+
+
+
+if(
+e.button===2
+){
+
+placeStructure();
+
+
+}
+
+
+
+});
+
+
+
+
+
+window.addEventListener(
+"contextmenu",
+e=>{
+
+e.preventDefault();
+
+});
+
+
+
+
+
+
+// ======================================================
+// PARTICLE ENGINE
+// ======================================================
+
+
+let particles=[];
+
+
+
+function spawnParticles(
+
+x,
+y,
+color,
+amount=20
+
+){
+
+
+for(
+let i=0;
+i<amount;
+i++
+){
+
+
+particles.push({
+
+x,
+
+y,
+
+vx:
+(Math.random()-.5)*8,
+
+vy:
+(Math.random()-.5)*8,
+
+life:30+
+
+Math.random()*20,
+
+color
+
+
+});
+
+
+}
+
+
+
+}
+
+
+
+
+
+function updateParticles(){
+
+
+for(
+let i=particles.length-1;
+i>=0;
+i--
+){
+
+
+let p =
+particles[i];
+
+
+
+p.x+=p.vx;
+
+p.y+=p.vy;
+
+
+p.vx*=.94;
+
+p.vy*=.94;
+
+
+p.life--;
+
+
+
+if(
+p.life<=0
+){
+
+particles.splice(
+i,
+1
+);
+
+}
+
+
+
+}
+
+
+}
+
+
+
+
+
+
+
+function drawParticles(){
+
+
+for(
+const p of particles
+){
+
+
+ctx.save();
+
+
+
+ctx.globalAlpha =
+p.life/50;
+
+
+
+ctx.fillStyle =
+p.color;
+
+
+
+ctx.beginPath();
+
+
+
+ctx.arc(
+
+p.x,
+
+p.y,
+
+3,
+
+0,
+
+Math.PI*2
+
+);
+
+
+
+ctx.fill();
+
+
+
+ctx.restore();
+
+
+
+}
+
+
+}
+
+
+
+
+
+
+
+
+// ======================================================
+// DAMAGE NUMBERS
+// ======================================================
+
+
+let damageTexts=[];
+
+
+
+function addDamageText(
+
+x,
+y,
+amount
+
+){
+
+
+damageTexts.push({
+
+x,
+
+y,
+
+amount,
+
+life:50
+
+});
+
+
+}
+
+
+
+
+
+
+function updateDamageTexts(){
+
+
+for(
+let i=damageTexts.length-1;
+i>=0;
+i--
+){
+
+
+let d =
+damageTexts[i];
+
+
+d.y-=1;
+
+
+d.life--;
+
+
+
+if(
+d.life<=0
+){
+
+damageTexts.splice(
+i,
+1
+);
+
+}
+
+
+}
+
+
+
+}
+
+
+
+
+function drawDamageTexts(){
+
+
+ctx.font=
+"bold 16px Arial";
+
+
+ctx.textAlign=
+"center";
+
+
+
+for(
+const d of damageTexts
+){
+
+
+ctx.fillStyle=
+"#ff4444";
+
+
+ctx.fillText(
+
+"-"+d.amount,
+
+d.x,
+
+d.y
+
+);
+
+
+
+}
+
+
+}
+
+
+
+
+
+
+
+// ======================================================
+// SCREEN SHAKE
+// ======================================================
+
+
+let screenShake=0;
+
+
+
+function applyShake(){
+
+
+if(
+screenShake<=0
+)
+return;
+
+
+
+ctx.translate(
+
+(Math.random()-.5)
+*
+screenShake,
+
+(Math.random()-.5)
+*
+screenShake
+
+);
+
+
+
+screenShake*=.85;
+
+
+
+if(
+screenShake<.2
+)
+screenShake=0;
+
+
+}
+
+
+
+
+
+
+
+// ======================================================
+// FINAL RENDER OVERRIDE
+// ======================================================
+
+
+const previousLoop =
+gameLoop;
+
+
+
+gameLoop=function(){
+
+
+
+updateCamera();
+
+
+
+ctx.clearRect(
+
+0,
+
+0,
+
+canvas.width,
+
+canvas.height
+
+);
+
+
+
+ctx.save();
+
+
+
+applyShake();
+
+
+
+worldStart();
+
+
+
+drawWorld();
+
+
+drawOrbs();
+
+drawScrap();
+
+drawStructures();
+
+drawProjectiles();
+
+drawPlayers();
+
+
+drawBuildPreview();
+
+
+drawParticles();
+
+
+drawDamageTexts();
+
+
+
+worldEnd();
+
+
+
+ctx.restore();
+
+
+
+updateParticles();
+
+updateDamageTexts();
+
+
+
+requestAnimationFrame(
+gameLoop
+);
+
+
+
+};
+
+// ======================================================
+// MOBILE TOUCH CONTROLS
+// ======================================================
+
+
+const mobile = {
+
+enabled:
+'ontouchstart' in window
+||
+navigator.maxTouchPoints>0,
+
+
+moveX:0,
+
+moveY:0
+
+};
+
+
+
+
+let joystick={
+
+active:false,
+
+x:0,
+
+y:0
+
+};
+
+
+
+
+
+if(mobile.enabled){
+
+
+const joy =
+document.createElement("div");
+
+
+joy.style.position="absolute";
+
+joy.style.left="40px";
+
+joy.style.bottom="40px";
+
+joy.style.width="130px";
+
+joy.style.height="130px";
+
+joy.style.borderRadius="50%";
+
+joy.style.background=
+"rgba(0,255,204,.15)";
+
+joy.style.border=
+"2px solid #00ffcc";
+
+
+joy.id="joystick";
+
+document.body.appendChild(joy);
+
+
+
+
+const knob =
+document.createElement("div");
+
+
+knob.style.width="50px";
+
+knob.style.height="50px";
+
+knob.style.borderRadius="50%";
+
+knob.style.background="#00ffcc";
+
+knob.style.position="absolute";
+
+knob.style.left="40px";
+
+knob.style.top="40px";
+
+
+joy.appendChild(knob);
+
+
+
+
+
+joy.addEventListener(
+"touchstart",
+e=>{
+
+
+joystick.active=true;
+
+
+});
+
+
+window.addEventListener(
+"touchmove",
+e=>{
+
+
+if(!joystick.active)
+return;
+
+
+
+let t =
+e.touches[0];
+
+
+let r =
+joy.getBoundingClientRect();
+
+
+
+let dx =
+t.clientX -
+(r.left+r.width/2);
+
+
+
+let dy =
+t.clientY -
+(r.top+r.height/2);
+
+
+
+let dist =
+Math.sqrt(
+dx*dx+dy*dy
+);
+
+
+
+let max=40;
+
+
+
+if(dist>max){
+
+dx =
+dx/dist*max;
+
+dy =
+dy/dist*max;
+
+}
+
+
+
+knob.style.transform =
+`
+translate(
+${dx}px,
+${dy}px
+)
+`;
+
+
+
+mobile.moveX =
+dx/max;
+
+
+mobile.moveY =
+dy/max;
+
+
+});
+
+
+
+
+window.addEventListener(
+"touchend",
+()=>{
+
+
+joystick.active=false;
+
+
+mobile.moveX=0;
+
+mobile.moveY=0;
+
+
+knob.style.transform=
+"translate(0,0)";
+
+
+});
+
+
+
+
+
+
+// FIRE BUTTON
+
+
+const fire =
+document.createElement("button");
+
+
+fire.innerHTML="FIRE";
+
+
+fire.style.position="absolute";
+
+fire.style.right="50px";
+
+fire.style.bottom="70px";
+
+fire.style.width="90px";
+
+fire.style.height="90px";
+
+fire.style.borderRadius="50%";
+
+fire.style.background=
+"rgba(255,50,100,.3)";
+
+fire.style.color="white";
+
+fire.style.border=
+"2px solid #ff3366";
+
+fire.style.fontWeight="bold";
+
+
+document.body.appendChild(fire);
+
+
+
+
+fire.addEventListener(
+"touchstart",
+()=>{
+
+
+shoot();
+
+
+});
+
+
+
+
+
+
+// BUILD BUTTON
+
+
+const build =
+document.createElement("button");
+
+
+build.innerHTML="BUILD";
+
+
+build.style.position="absolute";
+
+build.style.right="160px";
+
+build.style.bottom="70px";
+
+build.style.width="90px";
+
+build.style.height="90px";
+
+build.style.borderRadius="50%";
+
+build.style.background=
+"rgba(0,255,204,.25)";
+
+build.style.color="#00ffcc";
+
+build.style.border=
+"2px solid #00ffcc";
+
+build.style.fontWeight="bold";
+
+
+document.body.appendChild(build);
+
+
+
+build.addEventListener(
+"touchstart",
+()=>{
+
+placeStructure();
+
+});
+
+
+
+}
+
+
+
+
+
+
+
+
+// ======================================================
+// SHOOT FUNCTION
+// ======================================================
+
+
+function shoot(){
+
+
+if(!playerId)
+return;
+
+
+
+let angle =
+Math.atan2(
+
+mouse.y-canvas.height/2,
+
+mouse.x-canvas.width/2
+
+);
+
+
+
+fetch(
+"/shoot",
+{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":
+"application/json"
+
+},
+
+body:
+
+JSON.stringify({
+
+playerId,
+
+angle
+
+})
+
+}
+
+);
+
+
+}
+
+
+
+
+
+
+
+// ======================================================
+// MOBILE MOVEMENT SUPPORT
+// ======================================================
+
+
+const oldMovement =
+movementTick;
+
+
+
+movementTick=function(){
+
+
+if(!playerId)
+return;
+
+
+
+let vx=0;
+
+let vy=0;
+
+
+
+if(keys["w"]||
+keys["arrowup"])
+
+vy=-1;
+
+
+if(keys["s"]||
+keys["arrowdown"])
+
+vy=1;
+
+
+if(keys["a"]||
+keys["arrowleft"])
+
+vx=-1;
+
+
+if(keys["d"]||
+keys["arrowright"])
+
+vx=1;
+
+
+
+if(mobile.enabled){
+
+vx += mobile.moveX;
+
+vy += mobile.moveY;
+
+}
+
+
+
+
+localPlayer.x += vx*5;
+
+localPlayer.y += vy*5;
+
+
+
+localPlayer.x =
+Math.max(
+0,
+Math.min(
+WORLD_SIZE,
+localPlayer.x
+)
+);
+
+
+
+localPlayer.y =
+Math.max(
+0,
+Math.min(
+WORLD_SIZE,
+localPlayer.y
+)
+);
+
+
+
+
+fetch(
+"/update",
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":
+"application/json"
+},
+
+body:
+
+JSON.stringify({
+
+id:playerId,
+
+vx,
+
+vy
+
+})
+
+}
+
+);
+
+
+
+};
+
+
+
+
+
+
+
+
+// ======================================================
+// FULLSCREEN
+// ======================================================
+
+
+const fullButton =
+document.createElement("button");
+
+
+fullButton.innerHTML =
+"FULLSCREEN";
+
+
+fullButton.style.position=
+"absolute";
+
+
+fullButton.style.top=
+"20px";
+
+
+fullButton.style.right=
+"20px";
+
+
+fullButton.style.padding=
+"10px 15px";
+
+
+fullButton.style.background=
+"rgba(0,0,0,.5)";
+
+
+fullButton.style.color=
+"white";
+
+
+fullButton.style.border=
+"1px solid #00ffcc";
+
+
+fullButton.style.borderRadius=
+"8px";
+
+
+document.body.appendChild(
+fullButton
+);
+
+
+
+fullButton.onclick=()=>{
+
+
+if(!document.fullscreenElement){
+
+
+document.documentElement.requestFullscreen();
+
+
+}
+
+else{
+
+
+document.exitFullscreen();
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+
+// ======================================================
+// MINIMAP
+// ======================================================
+
+
+const mini =
+document.createElement("canvas");
+
+
+mini.width=180;
+
+mini.height=180;
+
+
+mini.style.position="absolute";
+
+
+mini.style.right="20px";
+
+
+mini.style.bottom="20px";
+
+
+mini.style.border=
+"2px solid #00ffcc";
+
+
+mini.style.background=
+"rgba(0,0,0,.5)";
+
+
+document.body.appendChild(
+mini
+);
+
+
+
+const miniCtx =
+mini.getContext("2d");
+
+
+
+
+function drawMinimap(){
+
+
+miniCtx.clearRect(
+0,
+0,
+180,
+180
+);
+
+
+
+miniCtx.fillStyle="#080811";
+
+
+miniCtx.fillRect(
+0,
+0,
+180,
+180
+);
+
+
+
+if(!gameState.players)
+return;
+
+
+
+for(
+const id in gameState.players
+){
+
+
+let p =
+gameState.players[id];
+
+
+
+miniCtx.fillStyle =
+id===playerId
+?
+"#00ffcc"
+:
+"#ff3366";
+
+
+
+miniCtx.beginPath();
+
+
+miniCtx.arc(
+
+p.x/WORLD_SIZE*180,
+
+p.y/WORLD_SIZE*180,
+
+4,
+
+0,
+
+Math.PI*2
+
+);
+
+
+
+miniCtx.fill();
+
+
+}
+
+
+
+}
+
+
+
+setInterval(
+drawMinimap,
+100
+);
+
+
+
+
+
+
+
+// ======================================================
+// PERFORMANCE CLEANUP
+// ======================================================
+
+
+setInterval(
+()=>{
+
+
+if(gameState.projectiles.length>500){
+
+gameState.projectiles.splice(
+0,
+gameState.projectiles.length-500
+);
+
+}
+
+
+
+if(particles.length>300){
+
+particles.splice(
+0,
+particles.length-300
+);
+
+}
+
+
+
+},
+5000
+);
+
+
+
+
+
+
+// ======================================================
+// FINALIZE
+// ======================================================
+
+
+console.log(
+"Siege Attack Client Loaded"
+);
+
+
+
+</script>
+
+
 </body>
+
 </html>
