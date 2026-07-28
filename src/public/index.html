@@ -3,17 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  
   <title>Siege Attack - Online Multiplayer Arena Game</title>
-  <meta name="description" content="Play Siege Attack online! Choose your hero class, build castles, collect power-ups, and battle other players live in this fast-paced arena game.">
-  <meta name="keywords" content="Siege Attack, siege attack game, browser game, io game, multiplayer arena, battle game">
+  <meta name="description" content="Play Siege Attack online! Build structures, level up to 20, and battle players live.">
   <link rel="canonical" href="https://siegeattack.wasmer.app/">
-
-  <meta property="og:title" content="Siege Attack - Online Multiplayer Arena Game">
-  <meta property="og:description" content="Deploy your hero and fight in the arena! Play Siege Attack now for free in your browser.">
-  <meta property="og:url" content="https://siegeattack.wasmer.app/">
-  <meta property="og:type" content="website">
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0e14; font-family: sans-serif; color: #fff; }
@@ -23,17 +15,19 @@
       background: #0f172a; z-index: 1; display: block;
     }
     
-    #startScreen, #deathScreen {
+    #startScreen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(10, 14, 23, 0.94); display: flex;
+      background: rgba(10, 14, 23, 0.95); display: flex;
       flex-direction: column; justify-content: center; align-items: center; z-index: 100;
     }
-    .card { background: #1a2233; padding: 25px; border-radius: 12px; border: 1px solid #2e3c56; text-align: center; width: 90%; max-width: 360px; box-shadow: 0 0 20px rgba(0,210,255,0.2); }
-    h1 { font-size: 2.2rem; color: #00d2ff; margin-bottom: 12px; font-weight: 900; letter-spacing: 2px; }
+    .card { background: #1a2233; padding: 20px; border-radius: 12px; border: 1px solid #2e3c56; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 0 20px rgba(0,210,255,0.2); }
+    h1 { font-size: 2rem; color: #00d2ff; margin-bottom: 12px; font-weight: 900; letter-spacing: 2px; }
     input[type="text"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #3b4d6e; background: #0f1522; color: #fff; margin-bottom: 15px; outline: none; font-size: 1rem; text-align: center; }
-    .class-select { display: flex; justify-content: space-between; margin-bottom: 15px; }
-    .class-btn { flex: 1; padding: 10px 2px; margin: 0 3px; background: #243047; border: 2px solid transparent; border-radius: 6px; color: #fff; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
-    .class-btn.active { border-color: #00d2ff; background: #183d5a; }
+    
+    .build-picker { margin-bottom: 15px; text-align: left; }
+    .build-picker label { font-size: 0.75rem; color: #88a0c0; text-transform: uppercase; display: block; margin-bottom: 5px; }
+    select { width: 100%; padding: 10px; background: #0f1522; color: #fff; border: 1px solid #3b4d6e; border-radius: 6px; font-size: 0.9rem; outline: none; }
+
     .btn { width: 100%; padding: 14px; background: #00d2ff; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 8px; }
     .btn-fs { background: #2ed573; color: #000; margin-bottom: 10px; }
 
@@ -56,7 +50,7 @@
     #moveKnob { position: absolute; top: 32px; left: 32px; width: 45px; height: 45px; border-radius: 50%; background: rgba(0, 210, 255, 0.6); pointer-events: none; }
     
     #mobileShootBtn { position: absolute; bottom: 35px; right: 25px; width: 80px; height: 80px; border-radius: 50%; background: #ff4757; border: 3px solid #ff6b81; color: #fff; font-weight: 900; font-size: 1.1rem; pointer-events: auto; display: none; box-shadow: 0 0 15px rgba(255,71,87,0.5); }
-    #mobileCastleBtn { position: absolute; bottom: 130px; right: 35px; width: 60px; height: 60px; border-radius: 50%; background: #f59e0b; border: 2px solid #fbbf24; color: #000; font-weight: bold; font-size: 0.75rem; pointer-events: auto; display: none; }
+    #mobileBuildBtn { position: absolute; bottom: 130px; right: 35px; width: 60px; height: 60px; border-radius: 50%; background: #f59e0b; border: 2px solid #fbbf24; color: #000; font-weight: bold; font-size: 0.7rem; pointer-events: auto; display: none; }
   </style>
 </head>
 <body>
@@ -71,18 +65,18 @@
     <div id="bottomStats">
       <div class="bar-container">
         <div id="hpFill" class="bar-fill"></div>
-        <div id="hpText" class="bar-text">HP: 100 / 100</div>
+        <div id="hpText" class="bar-text">HP: 120 / 120</div>
       </div>
       <div class="bar-container">
         <div id="xpFill" class="bar-fill"></div>
-        <div id="xpText" class="bar-text">LEVEL 1</div>
+        <div id="xpText" class="bar-text">LEVEL 1 / 20</div>
       </div>
     </div>
     <canvas id="minimap"></canvas>
 
     <div id="moveZone"><div id="moveKnob"></div></div>
     <button id="mobileShootBtn">FIRE</button>
-    <button id="mobileCastleBtn">CASTLE</button>
+    <button id="mobileBuildBtn">BUILD</button>
   </div>
 
   <div id="startScreen">
@@ -90,20 +84,34 @@
       <h1>SIEGE ATTACK</h1>
       <button class="btn btn-fs" id="fsBtn" onclick="toggleFullscreen()">ENTER FULLSCREEN</button>
       <input type="text" id="playerName" placeholder="Enter Hero Name" maxlength="12" value="Commander">
-      <div class="class-select">
-        <button class="class-btn active" onclick="selectClass('Attacker', this)">Attacker</button>
-        <button class="class-btn" onclick="selectClass('Defender', this)">Defender</button>
-        <button class="class-btn" onclick="selectClass('Scout', this)">Scout</button>
+      
+      <div class="build-picker">
+        <label>Select Structure to Build (Press 'E' or Button)</label>
+        <select id="buildTypeSelect">
+          <option value="Wood Wall">1. Wood Wall</option>
+          <option value="Stone Wall">2. Stone Wall</option>
+          <option value="Iron Wall">3. Iron Wall</option>
+          <option value="Spike Trap">4. Spike Trap</option>
+          <option value="Gate">5. Gate</option>
+          <option value="Healing Totem">6. Healing Totem</option>
+          <option value="Speed Pad">7. Speed Pad</option>
+          <option value="Mini Turret">8. Mini Turret</option>
+          <option value="Shield Gen">9. Shield Gen</option>
+          <option value="Mine">10. Mine</option>
+          <option value="Radar Tower">11. Radar Tower</option>
+          <option value="Barbed Wire">12. Barbed Wire</option>
+          <option value="Bounce Pad">13. Bounce Pad</option>
+          <option value="Ammo Station">14. Ammo Station</option>
+          <option value="Flame Trap">15. Flame Trap</option>
+          <option value="Ice Trap">16. Ice Trap</option>
+          <option value="Teleporter">17. Teleporter</option>
+          <option value="Mortar">18. Mortar</option>
+          <option value="Tesla Coil">19. Tesla Coil</option>
+          <option value="Vault">20. Vault</option>
+        </select>
       </div>
-      <button class="btn" onclick="joinGame()">DEPLOY HERO</button>
-    </div>
-  </div>
 
-  <div id="deathScreen" style="display: none;">
-    <div class="card">
-      <h1 style="color: #ff4757;">DESTROYED</h1>
-      <p style="margin-bottom: 20px; color: #a4b0be;">Your hero fell in battle.</p>
-      <button class="btn" onclick="respawn()">RESPAWN</button>
+      <button class="btn" onclick="joinGame()">DEPLOY HERO</button>
     </div>
   </div>
 
@@ -132,24 +140,21 @@
     if (isTouchDevice) {
       document.getElementById('moveZone').style.display = 'block';
       document.getElementById('mobileShootBtn').style.display = 'block';
-      document.getElementById('mobileCastleBtn').style.display = 'block';
+      document.getElementById('mobileBuildBtn').style.display = 'block';
     }
 
     let myId = null;
-    let selectedClass = 'Attacker';
     let players = {};
     let bullets = [];
     let orbs = [];
-    let castles = [];
-    let particles = [];
+    let structures = [];
     let mapWidth = 2500;
     let mapHeight = 2500;
 
     let localPos = { x: 1250, y: 1250 };
     let localAngle = 0;
     let wantShoot = false;
-    let wantCastle = false;
-    let shakeAmount = 0;
+    let wantBuild = false;
     let lastTime = performance.now();
 
     const keys = {};
@@ -157,7 +162,7 @@
 
     window.addEventListener('keydown', e => {
       keys[e.key.toLowerCase()] = true;
-      if (e.key.toLowerCase() === 'e') wantCastle = true;
+      if (e.key.toLowerCase() === 'e') wantBuild = true;
     });
     window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
     window.addEventListener('mousemove', e => {
@@ -173,8 +178,8 @@
     const shootBtn = document.getElementById('mobileShootBtn');
     shootBtn.addEventListener('touchstart', e => { e.preventDefault(); wantShoot = true; });
     
-    const castleBtn = document.getElementById('mobileCastleBtn');
-    castleBtn.addEventListener('touchstart', e => { e.preventDefault(); wantCastle = true; });
+    const buildBtn = document.getElementById('mobileBuildBtn');
+    buildBtn.addEventListener('touchstart', e => { e.preventDefault(); wantBuild = true; });
 
     const moveInput = { x: 0, y: 0 };
     const moveZone = document.getElementById('moveZone');
@@ -230,19 +235,13 @@
       moveInput.y = dy / maxDist;
     }
 
-    function selectClass(className, btn) {
-      selectedClass = className;
-      document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    }
-
     async function joinGame() {
       const name = document.getElementById('playerName').value || 'Hero';
       try {
         const res = await fetch('/api/join', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, class: selectedClass })
+          body: JSON.stringify({ name: name })
         });
         const data = await res.json();
         myId = data.id;
@@ -250,7 +249,7 @@
         mapHeight = data.mapHeight;
         players = data.players || {};
         orbs = data.orbs || [];
-        castles = data.castles || [];
+        structures = data.structures || [];
         
         if (players[myId]) {
           localPos.x = players[myId].x;
@@ -264,17 +263,17 @@
       }
     }
 
-    function respawn() {
-      document.getElementById('deathScreen').style.display = 'none';
+    function returnToHomeScreen() {
+      document.getElementById('startScreen').style.display = 'flex';
       players = {};
       myId = null;
-      joinGame();
     }
 
     function startNetworkSync() {
       setInterval(async () => {
         if (!myId) return;
 
+        const selectedBuildType = document.getElementById('buildTypeSelect').value;
         const payload = {
           id: myId,
           x: localPos.x,
@@ -282,10 +281,11 @@
           angle: localAngle,
           shoot: wantShoot,
           shootAngle: localAngle,
-          buildCastle: wantCastle
+          buildItem: wantBuild,
+          buildType: selectedBuildType
         };
         wantShoot = false;
-        wantCastle = false;
+        wantBuild = false;
 
         try {
           const res = await fetch('/api/update', {
@@ -296,11 +296,11 @@
           const state = await res.json();
           bullets = state.bullets || [];
           orbs = state.orbs || [];
-          castles = state.castles || [];
+          structures = state.structures || [];
           players = state.players || {};
 
           if (!players[myId]) {
-            document.getElementById('deathScreen').style.display = 'flex';
+            returnToHomeScreen();
           } else {
             updateHUD();
           }
@@ -359,14 +359,7 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       
-      let sx = 0, sy = 0;
-      if (shakeAmount > 0) {
-        sx = (Math.random() - 0.5) * shakeAmount;
-        sy = (Math.random() - 0.5) * shakeAmount;
-        shakeAmount = Math.max(0, shakeAmount - dt * 25);
-      }
-
-      ctx.translate(canvas.width / 2 - localPos.x + sx, canvas.height / 2 - localPos.y + sy);
+      ctx.translate(canvas.width / 2 - localPos.x, canvas.height / 2 - localPos.y);
       
       ctx.strokeStyle = '#26334d';
       ctx.lineWidth = 2;
@@ -377,15 +370,20 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mapWidth, y); ctx.stroke();
       }
 
-      castles.forEach(c => {
+      structures.forEach(s => {
         ctx.save();
-        ctx.translate(c.x, c.y);
+        ctx.translate(s.x, s.y);
         ctx.fillStyle = '#475569';
-        ctx.beginPath(); ctx.arc(0, 0, c.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, s.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 4; ctx.stroke();
 
-        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(-30, -c.radius - 12, 60, 6);
-        ctx.fillStyle = '#38bdf8'; ctx.fillRect(-30, -c.radius - 12, (c.hp / c.maxHp) * 60, 6);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(s.type, 0, -s.radius - 16);
+
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(-30, -s.radius - 10, 60, 5);
+        ctx.fillStyle = '#38bdf8'; ctx.fillRect(-30, -s.radius - 10, Math.max(0, (s.hp / s.maxHp) * 60), 5);
         ctx.restore();
       });
 
@@ -403,17 +401,6 @@
         ctx.fill();
       });
 
-      for (let i = particles.length - 1; i >= 0; i--) {
-        let pt = particles[i];
-        pt.x += pt.vx; pt.y += pt.vy;
-        pt.life -= dt * 2;
-        if (pt.life <= 0) { particles.splice(i, 1); continue; }
-        ctx.fillStyle = pt.color;
-        ctx.globalAlpha = pt.life;
-        ctx.fillRect(pt.x, pt.y, 4, 4);
-        ctx.globalAlpha = 1.0;
-      }
-
       Object.values(players).forEach(p => {
         ctx.save();
         ctx.translate(p.x, p.y);
@@ -424,7 +411,7 @@
         }
 
         ctx.rotate(p.angle);
-        ctx.fillStyle = p.class === 'Defender' ? '#f59e0b' : (p.class === 'Scout' ? '#10b981' : '#0284c7');
+        ctx.fillStyle = '#0284c7';
         ctx.fillRect(-20, -20, 40, 40);
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, -6, 30, 12);
@@ -462,9 +449,9 @@
       document.getElementById('hpFill').style.width = `${Math.max(0, (p.hp / p.maxHp) * 100)}%`;
       document.getElementById('hpText').innerText = `HP: ${Math.ceil(p.hp)} / ${p.maxHp}`;
       
-      const xpNeeded = p.level * 150;
+      const xpNeeded = p.level * 200;
       document.getElementById('xpFill').style.width = `${Math.min(100, (p.xp / xpNeeded) * 100)}%`;
-      document.getElementById('xpText').innerText = `LEVEL ${p.level} (${p.class.toUpperCase()})`;
+      document.getElementById('xpText').innerText = `LEVEL ${p.level} / 20`;
 
       const sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0, 5);
       const list = document.getElementById('leaderList');
