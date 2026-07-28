@@ -15,7 +15,7 @@ MAP_WIDTH = 2500
 MAP_HEIGHT = 2500
 
 types = ['xp', 'xp', 'xp', 'health', 'speed', 'damage']
-for i in range(50):
+for i in range(60):
     orbs.append({
         'id': f"orb_{i}",
         'x': random.randint(100, MAP_WIDTH - 100),
@@ -26,7 +26,7 @@ for i in range(50):
 def update_game_physics():
     now = time.time()
     
-    # Update Bullets
+    # Physics & Bullets
     for b in bullets[:]:
         b['x'] += b['vx']
         b['y'] += b['vy']
@@ -53,7 +53,7 @@ def update_game_physics():
         if b['life'] <= 0 and b in bullets:
             bullets.remove(b)
 
-    # Check Orb Pickups
+    # Power Orbs
     for o in orbs[:]:
         for pid, p in players.items():
             if p['hp'] <= 0:
@@ -82,9 +82,14 @@ class SiegeGameHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=PUBLIC_DIR, **kwargs)
 
+    def end_headers(self):
+        # Force browsers to fetch fresh code instead of serving cached files
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        super().end_headers()
+
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
@@ -167,7 +172,6 @@ class SiegeGameHandler(SimpleHTTPRequestHandler):
 
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.wfile.write(json.dumps(response).encode('utf-8'))
 
