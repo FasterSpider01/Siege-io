@@ -5,13 +5,15 @@ import os
 import uuid
 import random
 
+# Game State
 gameState = {
     "players": {},
     "orbs": [],
     "structures": []
 }
 
-for _ in range(60):
+# Initialize some initial orbs
+for _ in range(50):
     gameState["orbs"].append({
         "id": str(uuid.uuid4()),
         "x": random.randint(100, 2400),
@@ -73,10 +75,11 @@ class GameServer(BaseHTTPRequestHandler):
                 p["x"] = data.get("x", p["x"])
                 p["y"] = data.get("y", p["y"])
                 
+                # Check orb collection
                 remaining_orbs = []
                 for orb in gameState["orbs"]:
                     dist = ((p["x"] - orb["x"])**2 + (p["y"] - orb["y"])**2)**0.5
-                    if dist < 35:
+                    if dist < 30:
                         p["xp"] += orb["xp"]
                         if p["xp"] >= p["level"] * 100 and p["level"] < 20:
                             p["level"] += 1
@@ -86,7 +89,8 @@ class GameServer(BaseHTTPRequestHandler):
                         remaining_orbs.append(orb)
                 gameState["orbs"] = remaining_orbs
                 
-                while len(gameState["orbs"]) < 60:
+                # Respawn orbs if low
+                while len(gameState["orbs"]) < 50:
                     gameState["orbs"].append({
                         "id": str(uuid.uuid4()),
                         "x": random.randint(100, 2400),
@@ -115,7 +119,7 @@ class GameServer(BaseHTTPRequestHandler):
 def run(server_class=HTTPServer, handler_class=GameServer, port=8000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    print(f"Optimized Server running on port {port}...")
+    print(f"Server running on port {port}...")
     httpd.serve_forever()
 
 if __name__ == '__main__':
