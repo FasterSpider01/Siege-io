@@ -1,159 +1,92 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siege Attack - Multiplayer Arena Game</title>
-    <meta name="description" content="Play Siege Attack live! Join a massive 2500x2500 tactical multiplayer world, build 20 unique structures, and battle players worldwide.">
-    <meta name="keywords" content="Siege Attack, multiplayer game, browser game, io game, base building">
+    <title>Simple Multiplayer Game</title>
     <style>
-        *{box-sizing:border-box}body,html{margin:0;padding:0;overflow:hidden;background:#07070a;color:#fff;font-family:'Segoe UI',sans-serif;user-select:none}canvas{display:block}
-        #ui{position:absolute;top:15px;left:15px;pointer-events:none;background:rgba(10,10,15,.75);padding:12px 18px;border-radius:10px;border:1px solid rgba(0,255,204,.3);backdrop-filter:blur(8px)}
-        #ui h2{margin:0;font-size:15px;letter-spacing:1px;color:#00ffcc;text-shadow:0 0 10px rgba(0,255,204,.6)}
-        #buildMenu{position:absolute;bottom:15px;left:15px;background:rgba(12,12,18,.9);padding:12px;border-radius:12px;max-height:200px;width:320px;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(10px)}
-        .cat-title{grid-column:span 2;font-size:10px;text-transform:uppercase;color:#00ffcc;margin-top:4px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:2px}
-        .b-btn{background:linear-gradient(135deg,#1a1a24,#262636);color:#fff;border:1px solid rgba(255,255,255,.15);padding:6px 8px;cursor:pointer;font-size:11px;border-radius:6px;font-weight:600;display:flex;justify-content:space-between;align-items:center;transition:.2s}
-        .b-btn:hover,.b-btn.active{background:linear-gradient(135deg,#00ffcc,#00aa88);color:#000;border-color:#00ffcc;box-shadow:0 0 10px rgba(0,255,204,.4)}
-        .cost{background:rgba(0,0,0,.4);padding:2px 5px;border-radius:4px;font-size:9px;color:#ffcc00}
-        .b-btn:hover .cost,.b-btn.active .cost{background:rgba(0,0,0,.2);color:#000}
-        #topBar{position:absolute;top:15px;right:15px}
-        button.action{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.3);padding:8px 16px;cursor:pointer;border-radius:8px;font-weight:600;backdrop-filter:blur(5px);transition:.2s}
-        button.action:hover{background:rgba(0,255,204,.2);border-color:#00ffcc;color:#00ffcc}
-        #controls{position:absolute;bottom:25px;right:25px;display:none;gap:15px}
-        .m-btn{width:70px;height:70px;background:rgba(0,255,204,.2);border-radius:50%;border:2px solid #00ffcc;display:flex;align-items:center;justify-content:center;font-weight:700;color:#00ffcc;box-shadow:0 0 15px rgba(0,255,204,.3)}
-        #joystick{position:absolute;bottom:30px;left:340px;width:110px;height:110px;background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.2);border-radius:50%;display:none;touch-action:none}
-        #knob{position:absolute;top:30px;left:30px;width:50px;height:50px;background:rgba(0,255,204,.6);border-radius:50%;box-shadow:0 0 10px #00ffcc}
-        #crosshair{position:absolute;width:10px;height:10px;border:2px solid rgba(0,255,204,.7);border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);display:none}
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+            margin-top: 50px;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: #ffffff;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
-    <div id="topBar"><button class="action" onclick="if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen()">Fullscreen</button></div>
-    <div id="ui"><h2 id="hud">Level: 1 | HP: 100/100 | XP: 0 | Scrap: 50</h2></div>
-    <div id="buildMenu"></div>
-    <div id="joystick"><div id="knob"></div></div>
-    <div id="controls"><div class="m-btn" id="buildBtn">BUILD</div><div class="m-btn" id="fireBtn">FIRE</div></div>
-    <div id="crosshair"></div>
-    <canvas id="gameCanvas"></canvas>
+
+    <h1>Multiplayer Square Game</h1>
+    <p>Use your <strong>Arrow Keys</strong> to move your square around!</p>
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
 
     <script>
-        const canvas = document.getElementById("gameCanvas"), ctx = canvas.getContext("2d");
-        const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-        window.addEventListener('resize', resize); resize();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-        const meta = {
-            "Defenses": ["Wood Wall", "Stone Wall", "Iron Wall", "Gate", "Vault", "Barbed Wire"],
-            "Traps": ["Spike Trap", "Flame Trap", "Ice Trap", "Mine", "Tesla Coil"],
-            "Support": ["Healing Totem", "Speed Pad", "Shield Gen", "Radar Tower", "Bounce Pad", "Ammo Station", "Teleporter", "Mortar", "Mini Turret"]
+        // Connect to the Python WebSocket server
+        const ws = new WebSocket('ws://localhost:8765');
+
+        // Generate a unique ID and random starting position/color for this player
+        const myId = Math.random().toString(36).substring(7);
+        let myData = {
+            id: myId,
+            x: Math.floor(Math.random() * 400) + 50,
+            y: Math.floor(Math.random() * 400) + 50,
+            color: '#' + Math.floor(Math.random() * 16777215).toString(16)
         };
-        const costs = {"Wood Wall":20,"Stone Wall":40,"Iron Wall":70,"Gate":50,"Vault":100,"Barbed Wire":30,"Spike Trap":25,"Flame Trap":45,"Ice Trap":40,"Mine":35,"Tesla Coil":90,"Healing Totem":60,"Speed Pad":30,"Shield Gen":80,"Radar Tower":70,"Bounce Pad":35,"Ammo Station":50,"Teleporter":120,"Mortar":100,"Mini Turret":85};
-        
-        let selStruct = "Wood Wall", menu = document.getElementById("buildMenu");
-        for (let cat in meta) {
-            let t = document.createElement("div"); t.className = "cat-title"; t.innerText = cat; menu.appendChild(t);
-            meta[cat].forEach(s => {
-                let btn = document.createElement("div"); btn.className = "b-btn" + (s === selStruct ? " active" : "");
-                btn.innerHTML = `<span>${s}</span><span class="cost">${costs[s]}s</span>`;
-                btn.onclick = () => { document.querySelectorAll('.b-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); selStruct = s; };
-                menu.appendChild(btn);
-            });
-        }
 
-        let playerId = null, gState = { players: {}, orbs: [], structures: [], projectiles: [] };
-        let pos = { x: 1250, y: 1250 }, target = { x: 1250, y: 1250 }, keys = {}, shake = 0;
+        let players = {};
 
-        window.addEventListener('keydown', e => {
-            keys[e.key.toLowerCase()] = true;
-            if(e.key >= '1' && e.key <= '9') {
-                let all = Object.values(meta).flat(), idx = parseInt(e.key) - 1;
-                if(all[idx]) { selStruct = all[idx]; document.querySelectorAll('.b-btn').forEach(b => b.classList.toggle('active', b.innerText.includes(selStruct))); }
+        ws.onopen = () => {
+            // Send initial position when connected
+            ws.send(JSON.stringify(myData));
+        };
+
+        ws.onmessage = (event) => {
+            // Receive position updates from other players
+            const data = JSON.parse(event.data);
+            players[data.id] = data;
+        };
+
+        // Listen for keyboard input to move the square
+        window.addEventListener('keydown', (e) => {
+            let moved = false;
+            const speed = 15;
+
+            if (e.key === 'ArrowUp') { myData.y -= speed; moved = true; }
+            if (e.key === 'ArrowDown') { myData.y += speed; moved = true; }
+            if (e.key === 'ArrowLeft') { myData.x -= speed; moved = true; }
+            if (e.key === 'ArrowRight') { myData.x += speed; moved = true; }
+
+            if (moved) {
+                ws.send(JSON.stringify(myData));
             }
         });
-        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-        window.addEventListener('mousemove', e => { let ch = document.getElementById('crosshair'); ch.style.display = 'block'; ch.style.left = e.clientX + 'px'; ch.style.top = e.clientY + 'px'; });
-        
-        window.addEventListener('mousedown', e => {
-            if (!playerId || e.target.closest('#buildMenu') || e.target.closest('#topBar')) return;
-            let wx = pos.x + (e.clientX - canvas.width / 2), wy = pos.y + (e.clientY - canvas.height / 2);
-            if (e.button === 0) {
-                fetch('/shoot', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({playerId, angle: Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2)}) });
-            } else if (e.button === 2) {
-                fetch('/build', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({playerId, type: selStruct, x: wx, y: wy}) }).then(r=>r.json()).then(d => { if(d.built) shake = 6; });
-                e.preventDefault();
-            }
-        });
-        window.addEventListener('contextmenu', e => e.preventDefault());
 
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-            document.getElementById('controls').style.display = 'flex';
-            document.getElementById('joystick').style.display = 'block';
-            let joyActive = false, joyCenter = {x:0, y:0}, joy = document.getElementById('joystick'), knob = document.getElementById('knob');
-            joy.addEventListener('touchstart', e => { joyActive = true; let r = joy.getBoundingClientRect(); joyCenter = {x: r.left + r.width/2, y: r.top + r.height/2}; });
-            window.addEventListener('touchmove', e => {
-                if(!joyActive) return;
-                let t = e.touches[0], dx = t.clientX - joyCenter.x, dy = t.clientY - joyCenter.y, dist = Math.sqrt(dx*dx + dy*dy), ang = Math.atan2(dy, dx), cd = Math.min(dist, 30);
-                knob.style.transform = `translate(${Math.cos(ang)*cd}px, ${Math.sin(ang)*cd}px)`;
-                target.x += Math.cos(ang) * (cd/30) * 8; target.y += Math.sin(ang) * (cd/30) * 8;
-            });
-            window.addEventListener('touchend', () => { joyActive = false; knob.style.transform = `translate(0,0)`; });
-            document.getElementById('fireBtn').ontouchstart = () => { if(playerId) fetch('/shoot', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({playerId, angle: Math.random()*Math.PI*2})}); };
-            document.getElementById('buildBtn').ontouchstart = () => { if(playerId) fetch('/build', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({playerId, type: selStruct, x: pos.x+40, y: pos.y})}); };
-        }
-
-        fetch('/join', {method:'POST'}).then(r=>r.json()).then(d=>playerId = d.playerId);
-        setInterval(() => {
-            if(!playerId) return;
-            fetch('/state').then(r=>r.json()).then(d => {
-                gState = d;
-                if(gState.players[playerId]) { let p = gState.players[playerId]; document.getElementById('hud').innerText = `Level: ${p.level} | HP: ${p.hp}/${p.maxHp} | XP: ${p.xp} | Scrap: ${p.scrap}`; }
-            });
-        }, 33);
-
-        function render() {
-            let spd = 9;
-            if(keys['w']||keys['arrowup']) target.y -= spd; if(keys['s']||keys['arrowdown']) target.y += spd;
-            if(keys['a']||keys['arrowleft']) target.x -= spd; if(keys['d']||keys['arrowright']) target.x += spd;
-            target.x = Math.max(0, Math.min(2500, target.x)); target.y = Math.max(0, Math.min(2500, target.y));
-            pos.x += (target.x - pos.x) * 0.35; pos.y += (target.y - pos.y) * 0.35;
-
-            if(Math.random() < 0.4 && playerId) fetch('/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id: playerId, x: pos.x, y: pos.y})}).catch(()=>{});
-
+        // Game render loop
+        function gameLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            if(shake > 0) { ctx.translate((Math.random() - .5)*shake, (Math.random() - .5)*shake); shake *= .9; if(shake < .5) shake = 0; }
-            ctx.translate(canvas.width/2 - pos.x, canvas.height/2 - pos.y);
 
-            ctx.fillStyle = "#0d0d12"; ctx.fillRect(0, 0, 2500, 2500);
-            ctx.strokeStyle = "rgba(0,255,204,.05)"; ctx.lineWidth = 1;
-            for(let x=0; x<=2500; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,2500); ctx.stroke(); }
-            for(let y=0; y<=2500; y+=50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(2500,y); ctx.stroke(); }
+            // Draw yourself
+            ctx.fillStyle = myData.color;
+            ctx.fillRect(myData.x, myData.y, 30, 30);
 
-            ctx.strokeStyle = "#00ffcc"; ctx.lineWidth = 6; ctx.shadowColor = "rgba(0,255,204,.6)"; ctx.shadowBlur = 15;
-            ctx.strokeRect(0, 0, 2500, 2500); ctx.shadowBlur = 0;
-
-            gState.orbs.forEach(o => { ctx.save(); ctx.shadowColor = "#ffcc00"; ctx.shadowBlur = 10; ctx.fillStyle = "#ffcc00"; ctx.beginPath(); ctx.arc(o.x, o.y, 7, 0, Math.PI*2); ctx.fill(); ctx.restore(); });
-            gState.structures.forEach(s => {
-                ctx.save(); ctx.fillStyle = s.type.includes("Wall")?"#3b3b54":s.type.includes("Trap")?"#8b0000":"#2e5b88"; ctx.strokeStyle = "#00ffcc"; ctx.lineWidth = 2;
-                ctx.fillRect(s.x-20, s.y-20, 40, 40); ctx.strokeRect(s.x-20, s.y-20, 40, 40);
-                ctx.fillStyle = "#fff"; ctx.font = "9px sans-serif"; ctx.textAlign = "center"; ctx.fillText(s.type.split(" ")[0], s.x, s.y+3);
-                ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(s.x-20, s.y-28, 40, 5); ctx.fillStyle = "#00ffcc"; ctx.fillRect(s.x-20, s.y-28, 40*(s.hp/s.maxHp), 5);
-                ctx.restore();
-            });
-            if(gState.projectiles) {
-                ctx.fillStyle = "#ff3366";
-                gState.projectiles.forEach(p => { ctx.save(); ctx.shadowColor = "#ff3366"; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill(); ctx.restore(); });
+            // Draw all other players
+            for (let id in players) {
+                let p = players[id];
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 30, 30);
             }
-            for(let id in gState.players) {
-                let p = gState.players[id], isMe = id === playerId;
-                ctx.save(); ctx.shadowColor = isMe ? "#00ffcc" : "#ff3366"; ctx.shadowBlur = 15; ctx.fillStyle = isMe ? "#00ffcc" : "#ff3366";
-                ctx.beginPath(); ctx.arc(p.x, p.y, 22, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.stroke(); ctx.restore();
-                ctx.fillStyle = "#fff"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText(`Lvl ${p.level} (${p.scrap}s)`, p.x, p.y-34);
-                ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(p.x-22, p.y-50, 44, 6); ctx.fillStyle = "#00ffcc"; ctx.fillRect(p.x-22, p.y-50, 44*(p.hp/p.maxHp), 6);
-            }
-            ctx.restore();
-            requestAnimationFrame(render);
+
+            requestAnimationFrame(gameLoop);
         }
-        requestAnimationFrame(render);
+
+        gameLoop();
     </script>
+
 </body>
 </html>
