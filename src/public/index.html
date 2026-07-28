@@ -5,23 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Siege Attack - Massive Multiplayer Arena Game</title>
     <meta name="description" content="Play Siege Attack live! Join a massive 2500x2500 world, build 20 unique structures, level up to 20, and battle players worldwide.">
-    <meta name="keywords" content="Siege Attack, multiplayer game, browser game, io game, building game">
-    <meta property="og:title" content="Siege Attack">
-    <meta property="og:description" content="Real-time multiplayer arena game with 20 building structures and cross-platform play.">
-    <meta property="og:type" content="website">
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; background: #111; color: #fff; font-family: sans-serif; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #0a0a0c; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
-        #buildMenu { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-        .build-btn { background: #333; color: white; border: 1px solid #555; padding: 5px; cursor: pointer; font-size: 11px; border-radius: 4px; }
-        .build-btn:hover { background: #555; }
-        #controls { position: absolute; bottom: 20px; right: 20px; display: none; }
-        .mobile-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; border: 2px solid #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-left: 10px; user-select: none; }
-        #joystick { position: absolute; bottom: 20px; left: 20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; display: none; }
-        #joystickKnob { position: absolute; top: 30px; left: 30px; width: 40px; height: 40px; background: rgba(255,255,255,0.5); border-radius: 50%; }
-        #topBar { position: absolute; top: 10px; right: 10px; }
-        button.action { background: #222; color: #fff; border: 1px solid #777; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
+        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); }
+        #ui h2 { margin: 0; font-size: 16px; letter-spacing: 1px; color: #00ffcc; text-shadow: 0 0 10px rgba(0,255,204,0.5); }
+        #buildMenu { position: absolute; bottom: 15px; left: 15px; background: rgba(15, 15, 20, 0.85); padding: 12px; border-radius: 10px; max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); }
+        .build-btn { background: linear-gradient(135deg, #222, #333); color: white; border: 1px solid #444; padding: 8px; cursor: pointer; font-size: 11px; border-radius: 6px; font-weight: 600; transition: all 0.2s ease; }
+        .build-btn:hover { background: linear-gradient(135deg, #00ffcc, #00aa88); color: #000; border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.4); }
+        #topBar { position: absolute; top: 15px; right: 15px; }
+        button.action { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 16px; cursor: pointer; border-radius: 6px; font-weight: 600; backdrop-filter: blur(5px); transition: all 0.2s; }
+        button.action:hover { background: rgba(255, 255, 255, 0.25); border-color: #fff; }
+        #controls, #joystick { display: none; }
     </style>
 </head>
 <body>
@@ -32,11 +27,6 @@
         <h2 id="hudStats">Level: 1 | HP: 100/100 | XP: 0</h2>
     </div>
     <div id="buildMenu"></div>
-    <div id="joystick"><div id="joystickKnob"></div></div>
-    <div id="controls">
-        <div class="mobile-btn" id="fireBtn">FIRE</div>
-        <div class="mobile-btn" id="buildActionBtn">BUILD</div>
-    </div>
     <canvas id="gameCanvas"></canvas>
 
     <script>
@@ -71,6 +61,7 @@
         let playerId = null;
         let gameState = { players: {}, orbs: [], structures: [] };
         let myPos = { x: 1250, y: 1250 };
+        let targetPos = { x: 1250, y: 1250 };
         const keys = {};
 
         window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
@@ -87,12 +78,6 @@
             });
         });
 
-        // Detect mobile
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-            document.getElementById('controls').style.display = 'block';
-            document.getElementById('joystick').style.display = 'block';
-        }
-
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
@@ -101,32 +86,15 @@
             }
         }
 
-        // Join game
         fetch('/join', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 playerId = data.playerId;
             });
 
-        // Game Loop & Sync
+        // Fast background polling loop for game data sync
         setInterval(() => {
             if (!playerId) return;
-
-            let speed = 5;
-            if (keys['w'] || keys['arrowup']) myPos.y -= speed;
-            if (keys['s'] || keys['arrowdown']) myPos.y += speed;
-            if (keys['a'] || keys['arrowleft']) myPos.x -= speed;
-            if (keys['d'] || keys['arrowright']) myPos.x += speed;
-
-            myPos.x = Math.max(0, Math.min(2500, myPos.x));
-            myPos.y = Math.max(0, Math.min(2500, myPos.y));
-
-            fetch('/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: playerId, x: myPos.x, y: myPos.y })
-            }).then(res => res.json()).then(() => {});
-
             fetch('/state')
                 .then(res => res.json())
                 .then(data => {
@@ -138,47 +106,120 @@
                 });
         }, 1000 / 30);
 
-        // Render Loop
+        // Render & Movement Loop running smoothly at maximum refresh rate (60fps+)
         function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let speed = 6;
+            if (keys['w'] || keys['arrowup']) targetPos.y -= speed;
+            if (keys['s'] || keys['arrowdown']) targetPos.y += speed;
+            if (keys['a'] || keys['arrowleft']) targetPos.x -= speed;
+            if (keys['d'] || keys['arrowright']) targetPos.x += speed;
 
-            if (playerId && gameState.players[playerId]) {
-                myPos.x = gameState.players[playerId].x;
-                myPos.y = gameState.players[playerId].y;
+            targetPos.x = Math.max(0, Math.min(2500, targetPos.x));
+            targetPos.y = Math.max(0, Math.min(2500, targetPos.y));
+
+            // Smooth linear interpolation (lerp) for silky fluid movement without lag jitter
+            myPos.x += (targetPos.x - myPos.x) * 0.25;
+            myPos.y += (targetPos.y - myPos.y) * 0.25;
+
+            // Send periodic updates to backend
+            if (Math.random() < 0.3 && playerId) {
+                fetch('/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: playerId, x: myPos.x, y: myPos.y })
+                }).catch(() => {});
             }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.save();
             ctx.translate(canvas.width / 2 - myPos.x, canvas.height / 2 - myPos.y);
 
-            // Draw World Boundary (2500x2500)
-            ctx.strokeStyle = "#444";
-            ctx.lineWidth = 4;
-            ctx.strokeRect(0, 0, 2500, 2500);
+            // Draw Dynamic Arena Floor Grid
+            ctx.fillStyle = "#121216";
+            ctx.fillRect(0, 0, 2500, 2500);
 
-            // Draw Orbs
-            ctx.fillStyle = "#00ffcc";
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+            ctx.lineWidth = 1;
+            const gridSize = 100;
+            for (let x = 0; x <= 2500; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, 2500);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= 2500; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(2500, y);
+                ctx.stroke();
+            }
+
+            // Draw World Boundary Border
+            ctx.strokeStyle = "#00ffcc";
+            ctx.lineWidth = 6;
+            ctx.shadowColor = "rgba(0, 255, 204, 0.6)";
+            ctx.shadowBlur = 15;
+            ctx.strokeRect(0, 0, 2500, 2500);
+            ctx.shadowBlur = 0; // Reset shadow
+
+            // Draw Glowing Orbs
             gameState.orbs.forEach(orb => {
+                ctx.save();
+                ctx.shadowColor = "#00ffcc";
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = "#00ffcc";
                 ctx.beginPath();
                 ctx.arc(orb.x, orb.y, 6, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.restore();
             });
 
-            // Draw Structures
-            ctx.fillStyle = "#888";
+            // Draw Structures with visual depth
             gameState.structures.forEach(s => {
-                ctx.fillRect(s.x - 15, s.y - 15, 30, 30);
+                ctx.save();
+                ctx.fillStyle = "#4a4e69";
+                ctx.strokeStyle = "#22223b";
+                ctx.lineWidth = 2;
+                ctx.fillRect(s.x - 16, s.y - 16, 32, 32);
+                ctx.strokeRect(s.x - 16, s.y - 16, 32, 32);
+                ctx.fillStyle = "#fff";
+                ctx.font = "9px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(s.type.split(" ")[0], s.x, s.y + 4);
+                ctx.restore();
             });
 
-            // Draw Players
+            // Draw Players with Glow Effects and Health Bars
             for (let id in gameState.players) {
                 let p = gameState.players[id];
-                ctx.fillStyle = id === playerId ? "#ff5555" : "#5555ff";
+                let isMe = id === playerId;
+
+                ctx.save();
+                ctx.shadowColor = isMe ? "#ff3366" : "#3366ff";
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = isMe ? "#ff3366" : "#3366ff";
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
                 ctx.fill();
+                
+                // Outer ring
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+
+                // Player name / level tag
                 ctx.fillStyle = "#fff";
-                ctx.font = "12px sans-serif";
-                ctx.fillText(`Lvl ${p.level}`, p.x - 15, p.y - 25);
+                ctx.font = "bold 12px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(`Lvl ${p.level}`, p.x, p.y - 30);
+
+                // Mini Health Bar
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(p.x - 20, p.y - 46, 40, 6);
+                ctx.fillStyle = "#00ffcc";
+                ctx.fillRect(p.x - 20, p.y - 46, 40 * (p.hp / p.maxHp), 6);
             }
 
             ctx.restore();
