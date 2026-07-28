@@ -3,25 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siege Attack - Massive Multiplayer Arena Game</title>
-    <meta name="description" content="Play Siege Attack live! Join a massive 2500x2500 world, build 20 unique structures, level up to 20, and battle players worldwide.">
-    <meta name="keywords" content="Siege Attack, multiplayer game, browser game, io game, building game">
+    <title>Siege Attack - Massive Multiplayer Arena & Base Building Game</title>
+    <meta name="description" content="Play Siege Attack live! Join a massive 2500x2500 tactical multiplayer world, build 20 unique structures, level up to 20, and battle players worldwide.">
+    <meta name="keywords" content="Siege Attack, multiplayer game, browser game, io game, base building game, survival game">
     <meta property="og:title" content="Siege Attack">
-    <meta property="og:description" content="Real-time multiplayer arena game with 20 building structures and cross-platform play.">
+    <meta property="og:description" content="Real-time multiplayer arena survival game with 20 building structures and cross-platform play.">
     <meta property="og:type" content="website">
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; background: #111; color: #fff; font-family: sans-serif; }
+        * { box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #07070a; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
-        #buildMenu { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-        .build-btn { background: #333; color: white; border: 1px solid #555; padding: 5px; cursor: pointer; font-size: 11px; border-radius: 4px; }
-        .build-btn:hover { background: #555; }
-        #controls { position: absolute; bottom: 20px; right: 20px; display: none; }
-        .mobile-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; border: 2px solid #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-left: 10px; user-select: none; }
-        #joystick { position: absolute; bottom: 20px; left: 20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; display: none; }
-        #joystickKnob { position: absolute; top: 30px; left: 30px; width: 40px; height: 40px; background: rgba(255,255,255,0.5); border-radius: 50%; }
-        #topBar { position: absolute; top: 10px; right: 10px; }
-        button.action { background: #222; color: #fff; border: 1px solid #777; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
+        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; background: rgba(10, 10, 15, 0.75); padding: 12px 18px; border-radius: 10px; border: 1px solid rgba(0,255,204,0.3); backdrop-filter: blur(8px); box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        #ui h2 { margin: 0; font-size: 15px; letter-spacing: 1px; color: #00ffcc; text-shadow: 0 0 10px rgba(0,255,204,0.6); }
+        
+        #buildMenu { position: absolute; bottom: 15px; left: 15px; background: rgba(12, 12, 18, 0.9); padding: 15px; border-radius: 12px; max-height: 220px; width: 340px; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,0.7); }
+        .build-category-title { grid-column: span 2; font-size: 11px; text-transform: uppercase; color: #00ffcc; margin-top: 4px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px; }
+        .build-btn { background: linear-gradient(135deg, #1a1a24, #262636); color: white; border: 1px solid rgba(255,255,255,0.15); padding: 8px 10px; cursor: pointer; font-size: 11px; border-radius: 6px; font-weight: 600; text-align: left; transition: all 0.2s ease; display: flex; justify-content: space-between; align-items: center; }
+        .build-btn:hover, .build-btn.active { background: linear-gradient(135deg, #00ffcc, #00aa88); color: #000; border-color: #00ffcc; box-shadow: 0 0 12px rgba(0,255,204,0.5); }
+        .cost-tag { background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #ffcc00; }
+        .build-btn:hover .cost-tag, .build-btn.active .cost-tag { background: rgba(0,0,0,0.2); color: #000; }
+
+        #topBar { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; }
+        button.action { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 16px; cursor: pointer; border-radius: 8px; font-weight: 600; backdrop-filter: blur(5px); transition: all 0.2s; }
+        button.action:hover { background: rgba(0, 255, 204, 0.2); border-color: #00ffcc; color: #00ffcc; }
+
+        #controls { position: absolute; bottom: 25px; right: 25px; display: none; gap: 15px; }
+        .mobile-btn { width: 75px; height: 75px; background: rgba(0, 255, 204, 0.2); border-radius: 50%; border: 2px solid #00ffcc; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: #00ffcc; user-select: none; box-shadow: 0 0 15px rgba(0,255,204,0.3); cursor: pointer; }
+        #joystick { position: absolute; bottom: 30px; left: 360px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; display: none; touch-action: none; }
+        #joystickKnob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(0, 255, 204, 0.6); border-radius: 50%; box-shadow: 0 0 10px #00ffcc; }
+
+        #crosshair { position: absolute; width: 10px; height: 10px; border: 2px solid rgba(0,255,204,0.7); border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); display: none; }
     </style>
 </head>
 <body>
@@ -29,14 +40,15 @@
         <button class="action" onclick="toggleFullscreen()">Fullscreen</button>
     </div>
     <div id="ui">
-        <h2 id="hudStats">Level: 1 | HP: 100/100 | XP: 0</h2>
+        <h2 id="hudStats">Level: 1 | HP: 100/100 | XP: 0 | Scrap: 50</h2>
     </div>
     <div id="buildMenu"></div>
     <div id="joystick"><div id="joystickKnob"></div></div>
     <div id="controls">
-        <div class="mobile-btn" id="fireBtn">FIRE</div>
         <div class="mobile-btn" id="buildActionBtn">BUILD</div>
+        <div class="mobile-btn" id="fireBtn">FIRE</div>
     </div>
+    <div id="crosshair"></div>
     <canvas id="gameCanvas"></canvas>
 
     <script>
@@ -50,47 +62,152 @@
         window.addEventListener('resize', resize);
         resize();
 
-        const structuresList = [
-            "Wood Wall", "Stone Wall", "Iron Wall", "Gate", "Vault", "Barbed Wire",
-            "Spike Trap", "Flame Trap", "Ice Trap", "Mine", "Tesla Coil",
-            "Healing Totem", "Speed Pad", "Shield Gen", "Radar Tower", "Bounce Pad", 
-            "Ammo Station", "Teleporter", "Mortar", "Mini Turret"
-        ];
+        const structuresMeta = {
+            "Defenses": ["Wood Wall", "Stone Wall", "Iron Wall", "Gate", "Vault", "Barbed Wire"],
+            "Traps & Hazards": ["Spike Trap", "Flame Trap", "Ice Trap", "Mine", "Tesla Coil"],
+            "Support & Utility": ["Healing Totem", "Speed Pad", "Shield Gen", "Radar Tower", "Bounce Pad", "Ammo Station", "Teleporter", "Mortar", "Mini Turret"]
+        };
+
+        const costs = {
+            "Wood Wall": 20, "Stone Wall": 40, "Iron Wall": 70, "Gate": 50, "Vault": 100, "Barbed Wire": 30,
+            "Spike Trap": 25, "Flame Trap": 45, "Ice Trap": 40, "Mine": 35, "Tesla Coil": 90,
+            "Healing Totem": 60, "Speed Pad": 30, "Shield Gen": 80, "Radar Tower": 70, "Bounce Pad": 35,
+            "Ammo Station": 50, "Teleporter": 120, "Mortar": 100, "Mini Turret": 85
+        };
 
         const buildMenu = document.getElementById("buildMenu");
-        let selectedStructure = structuresList[0];
+        let selectedStructure = "Wood Wall";
 
-        structuresList.forEach(struct => {
-            const btn = document.createElement("button");
-            btn.className = "build-btn";
-            btn.innerText = struct;
-            btn.onclick = () => { selectedStructure = struct; };
-            buildMenu.appendChild(btn);
-        });
+        for (let cat in structuresMeta) {
+            const catTitle = document.createElement("div");
+            catTitle.className = "build-category-title";
+            catTitle.innerText = cat;
+            buildMenu.appendChild(catTitle);
+
+            structuresMeta[cat].forEach(struct => {
+                const btn = document.createElement("div");
+                btn.className = "build-btn" + (struct === selectedStructure ? " active" : "");
+                btn.innerHTML = `<span>${struct}</span><span class="cost-tag">${costs[struct]} Scrap</span>`;
+                btn.onclick = () => {
+                    document.querySelectorAll('.build-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedStructure = struct;
+                };
+                buildMenu.appendChild(btn);
+            });
+        }
 
         let playerId = null;
-        let gameState = { players: {}, orbs: [], structures: [] };
+        let gameState = { players: {}, orbs: [], structures: [], projectiles: [] };
         let myPos = { x: 1250, y: 1250 };
+        let targetPos = { x: 1250, y: 1250 };
         const keys = {};
+        let screenShake = 0;
 
-        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+            if(e.key >= '1' && e.key <= '9') {
+                let allStructs = Object.values(structuresMeta).flat();
+                let idx = parseInt(e.key) - 1;
+                if(allStructs[idx]) {
+                    selectedStructure = allStructs[idx];
+                    document.querySelectorAll('.build-btn').forEach((b) => {
+                        if(b.innerText.includes(selectedStructure)) b.classList.add('active');
+                        else b.classList.remove('active');
+                    });
+                }
+            }
+        });
         window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-        canvas.addEventListener('click', e => {
-            if (!playerId) return;
-            const worldX = myPos.x + (e.clientX - canvas.width / 2);
-            const worldY = myPos.y + (e.clientY - canvas.height / 2);
-            fetch('/build', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ structure: { type: selectedStructure, x: worldX, y: worldY, owner: playerId } })
-            });
+        window.addEventListener('mousemove', e => {
+            const ch = document.getElementById('crosshair');
+            ch.style.display = 'block';
+            ch.style.left = e.clientX + 'px';
+            ch.style.top = e.clientY + 'px';
         });
 
-        // Detect mobile
+        window.addEventListener('mousedown', e => {
+            if (!playerId || e.target.closest('#buildMenu') || e.target.closest('#topBar')) return;
+            const worldX = myPos.x + (e.clientX - canvas.width / 2);
+            const worldY = myPos.y + (e.clientY - canvas.height / 2);
+            
+            if (e.button === 0) {
+                const angle = Math.atan2(e.clientY - canvas.height / 2, e.clientX - canvas.width / 2);
+                fetch('/shoot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playerId: playerId, angle: angle })
+                });
+            } else if (e.button === 2) {
+                fetch('/build', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playerId: playerId, type: selectedStructure, x: worldX, y: worldY })
+                }).then(res => res.json()).then(data => {
+                    if (data.built) screenShake = 6;
+                });
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
         if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-            document.getElementById('controls').style.display = 'block';
+            document.getElementById('controls').style.display = 'flex';
             document.getElementById('joystick').style.display = 'block';
+
+            let joystickActive = false;
+            let joyCenter = { x: 0, y: 0 };
+            const joy = document.getElementById('joystick');
+            const knob = document.getElementById('joystickKnob');
+
+            joy.addEventListener('touchstart', e => {
+                joystickActive = true;
+                const rect = joy.getBoundingClientRect();
+                joyCenter = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
+            });
+
+            window.addEventListener('touchmove', e => {
+                if (!joystickActive) return;
+                const touch = e.touches[0];
+                const dx = touch.clientX - joyCenter.x;
+                const dy = touch.clientY - joyCenter.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const maxDist = 35;
+                const angle = Math.atan2(dy, dx);
+                const clampedDist = Math.min(dist, maxDist);
+
+                knob.style.transform = `translate(${Math.cos(angle)*clampedDist}px, ${Math.sin(angle)*clampedDist}px)`;
+                
+                let speed = 8;
+                targetPos.x += Math.cos(angle) * (clampedDist/maxDist) * speed;
+                targetPos.y += Math.sin(angle) * (clampedDist/maxDist) * speed;
+            });
+
+            window.addEventListener('touchend', () => {
+                joystickActive = false;
+                knob.style.transform = `translate(0px, 0px)`;
+            });
+
+            document.getElementById('fireBtn').addEventListener('touchstart', () => {
+                if (!playerId) return;
+                const angle = Math.random() * Math.PI * 2;
+                fetch('/shoot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playerId: playerId, angle: angle })
+                });
+            });
+
+            document.getElementById('buildActionBtn').addEventListener('touchstart', () => {
+                if (!playerId) return;
+                fetch('/build', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playerId: playerId, type: selectedStructure, x: myPos.x + 40, y: myPos.y })
+                });
+            });
         }
 
         function toggleFullscreen() {
@@ -101,84 +218,144 @@
             }
         }
 
-        // Join game
         fetch('/join', { method: 'POST' })
             .then(res => res.json())
-            .then(data => {
-                playerId = data.playerId;
-            });
+            .then(data => { playerId = data.playerId; });
 
-        // Game Loop & Sync
         setInterval(() => {
             if (!playerId) return;
-
-            let speed = 5;
-            if (keys['w'] || keys['arrowup']) myPos.y -= speed;
-            if (keys['s'] || keys['arrowdown']) myPos.y += speed;
-            if (keys['a'] || keys['arrowleft']) myPos.x -= speed;
-            if (keys['d'] || keys['arrowright']) myPos.x += speed;
-
-            myPos.x = Math.max(0, Math.min(2500, myPos.x));
-            myPos.y = Math.max(0, Math.min(2500, myPos.y));
-
-            fetch('/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: playerId, x: myPos.x, y: myPos.y })
-            }).then(res => res.json()).then(() => {});
-
             fetch('/state')
                 .then(res => res.json())
                 .then(data => {
                     gameState = data;
                     if (gameState.players[playerId]) {
                         let p = gameState.players[playerId];
-                        document.getElementById('hudStats').innerText = `Level: ${p.level} | HP: ${p.hp}/${p.maxHp} | XP: ${p.xp}`;
+                        document.getElementById('hudStats').innerText = `Level: ${p.level} | HP: ${p.hp}/${p.maxHp} | XP: ${p.xp} | Scrap: ${p.scrap}`;
                     }
                 });
         }, 1000 / 30);
 
-        // Render Loop
         function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let speed = 9;
+            if (keys['w'] || keys['arrowup']) targetPos.y -= speed;
+            if (keys['s'] || keys['arrowdown']) targetPos.y += speed;
+            if (keys['a'] || keys['arrowleft']) targetPos.x -= speed;
+            if (keys['d'] || keys['arrowright']) targetPos.x += speed;
 
-            if (playerId && gameState.players[playerId]) {
-                myPos.x = gameState.players[playerId].x;
-                myPos.y = gameState.players[playerId].y;
+            targetPos.x = Math.max(0, Math.min(2500, targetPos.x));
+            targetPos.y = Math.max(0, Math.min(2500, targetPos.y));
+
+            myPos.x += (targetPos.x - myPos.x) * 0.35;
+            myPos.y += (targetPos.y - myPos.y) * 0.35;
+
+            if (Math.random() < 0.4 && playerId) {
+                fetch('/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: playerId, x: myPos.x, y: myPos.y })
+                }).catch(() => {});
             }
 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
+            
+            if (screenShake > 0) {
+                ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+                screenShake *= 0.9;
+                if (screenShake < 0.5) screenShake = 0;
+            }
+
             ctx.translate(canvas.width / 2 - myPos.x, canvas.height / 2 - myPos.y);
 
-            // Draw World Boundary (2500x2500)
-            ctx.strokeStyle = "#444";
-            ctx.lineWidth = 4;
+            // Tactical Grid Background (50x50 tile units)
+            ctx.fillStyle = "#0d0d12";
+            ctx.fillRect(0, 0, 2500, 2500);
+
+            ctx.strokeStyle = "rgba(0, 255, 204, 0.05)";
+            ctx.lineWidth = 1;
+            const tileSize = 50;
+            for (let x = 0; x <= 2500; x += tileSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2500); ctx.stroke();
+            }
+            for (let y = 0; y <= 2500; y += tileSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(2500, y); ctx.stroke();
+            }
+
+            ctx.strokeStyle = "#00ffcc";
+            ctx.lineWidth = 6;
+            ctx.shadowColor = "rgba(0, 255, 204, 0.6)";
+            ctx.shadowBlur = 15;
             ctx.strokeRect(0, 0, 2500, 2500);
+            ctx.shadowBlur = 0;
 
-            // Draw Orbs
-            ctx.fillStyle = "#00ffcc";
+            // Orbs
             gameState.orbs.forEach(orb => {
-                ctx.beginPath();
-                ctx.arc(orb.x, orb.y, 6, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.save();
+                ctx.shadowColor = "#ffcc00";
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = "#ffcc00";
+                ctx.beginPath(); ctx.arc(orb.x, orb.y, 7, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
             });
 
-            // Draw Structures
-            ctx.fillStyle = "#888";
+            // Structures
             gameState.structures.forEach(s => {
-                ctx.fillRect(s.x - 15, s.y - 15, 30, 30);
+                ctx.save();
+                ctx.fillStyle = s.type.includes("Wall") ? "#3b3b54" : (s.type.includes("Trap") ? "#8b0000" : "#2e5b88");
+                ctx.strokeStyle = "#00ffcc";
+                ctx.lineWidth = 2;
+                ctx.fillRect(s.x - 20, s.y - 20, 40, 40);
+                ctx.strokeRect(s.x - 20, s.y - 20, 40, 40);
+                
+                ctx.fillStyle = "#fff";
+                ctx.font = "9px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(s.type.split(" ")[0], s.x, s.y + 3);
+
+                ctx.fillStyle = "rgba(0,0,0,0.6)";
+                ctx.fillRect(s.x - 20, s.y - 28, 40, 5);
+                ctx.fillStyle = "#00ffcc";
+                ctx.fillRect(s.x - 20, s.y - 28, 40 * (s.hp / s.maxHp), 5);
+                ctx.restore();
             });
 
-            // Draw Players
+            // Projectiles
+            if (gameState.projectiles) {
+                ctx.fillStyle = "#ff3366";
+                gameState.projectiles.forEach(proj => {
+                    ctx.save();
+                    ctx.shadowColor = "#ff3366";
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath(); ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                });
+            }
+
+            // Players
             for (let id in gameState.players) {
                 let p = gameState.players[id];
-                ctx.fillStyle = id === playerId ? "#ff5555" : "#5555ff";
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
-                ctx.fill();
+                let isMe = id === playerId;
+
+                ctx.save();
+                ctx.shadowColor = isMe ? "#00ffcc" : "#ff3366";
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = isMe ? "#00ffcc" : "#ff3366";
+                ctx.beginPath(); ctx.arc(p.x, p.y, 22, 0, Math.PI * 2); ctx.fill();
+                
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.restore();
+
                 ctx.fillStyle = "#fff";
-                ctx.font = "12px sans-serif";
-                ctx.fillText(`Lvl ${p.level}`, p.x - 15, p.y - 25);
+                ctx.font = "bold 12px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(`Lvl ${p.level} (${p.scrap} Scrap)`, p.x, p.y - 34);
+
+                ctx.fillStyle = "rgba(0,0,0,0.6)";
+                ctx.fillRect(p.x - 22, p.y - 50, 44, 6);
+                ctx.fillStyle = "#00ffcc";
+                ctx.fillRect(p.x - 22, p.y - 50, 44 * (p.hp / p.maxHp), 6);
             }
 
             ctx.restore();
