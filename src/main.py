@@ -5,18 +5,15 @@ import random
 import math
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
-# Path pointing to static files inside src/public
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
 
-# In-Memory Game State
 players = {}
 bullets = []
 orbs = []
 MAP_WIDTH = 2500
 MAP_HEIGHT = 2500
 
-# Initialize Power Orbs
 types = ['xp', 'xp', 'xp', 'health', 'speed', 'damage']
 for i in range(50):
     orbs.append({
@@ -35,7 +32,6 @@ def update_game_physics():
         b['y'] += b['vy']
         b['life'] -= 1
         
-        # Player Collisions
         for pid, p in list(players.items()):
             if p['hp'] <= 0 or pid == b['owner'] or p.get('shield', False):
                 continue
@@ -84,8 +80,14 @@ def update_game_physics():
 
 class SiegeGameHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        # Serves static files directly out of src/public
         super().__init__(*args, directory=PUBLIC_DIR, **kwargs)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
 
     def do_POST(self):
         length = int(self.headers.get('Content-Length', 0))
@@ -119,7 +121,13 @@ class SiegeGameHandler(SimpleHTTPRequestHandler):
                 'damageBoost': 1.0,
                 'lastActive': now
             }
-            response = {'id': pid, 'mapWidth': MAP_WIDTH, 'mapHeight': MAP_HEIGHT}
+            response = {
+                'id': pid, 
+                'mapWidth': MAP_WIDTH, 
+                'mapHeight': MAP_HEIGHT,
+                'players': players,
+                'orbs': orbs
+            }
 
         elif self.path == '/api/update':
             pid = data.get('id')
@@ -147,7 +155,6 @@ class SiegeGameHandler(SimpleHTTPRequestHandler):
                             'life': 50
                         })
 
-            # Disconnect inactive players after 5 seconds
             for key, player in list(players.items()):
                 if now - player.get('lastActive', 0) > 5.0:
                     del players[key]
