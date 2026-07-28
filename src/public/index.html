@@ -3,7 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Siege.io - Battle Arena</title>
+  
+  <title>Siege Attack - Online Multiplayer Arena Game</title>
+  <meta name="description" content="Play Siege Attack online! Choose your hero class, build castles, collect power-ups, and battle other players live in this fast-paced arena game.">
+  <meta name="keywords" content="Siege Attack, siege attack game, browser game, io game, multiplayer arena, battle game">
+  <link rel="canonical" href="https://siegeattack.wasmer.app/">
+
+  <meta property="og:title" content="Siege Attack - Online Multiplayer Arena Game">
+  <meta property="og:description" content="Deploy your hero and fight in the arena! Play Siege Attack now for free in your browser.">
+  <meta property="og:url" content="https://siegeattack.wasmer.app/">
+  <meta property="og:type" content="website">
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0e14; font-family: sans-serif; color: #fff; }
@@ -77,7 +87,7 @@
 
   <div id="startScreen">
     <div class="card">
-      <h1>SIEGE.IO</h1>
+      <h1>SIEGE ATTACK</h1>
       <button class="btn btn-fs" id="fsBtn" onclick="toggleFullscreen()">ENTER FULLSCREEN</button>
       <input type="text" id="playerName" placeholder="Enter Hero Name" maxlength="12" value="Commander">
       <div class="class-select">
@@ -132,7 +142,6 @@
     let orbs = [];
     let castles = [];
     let particles = [];
-    let floatTexts = [];
     let mapWidth = 2500;
     let mapHeight = 2500;
 
@@ -161,14 +170,12 @@
       }
     });
 
-    // Mobile Shoot & Castle buttons
     const shootBtn = document.getElementById('mobileShootBtn');
     shootBtn.addEventListener('touchstart', e => { e.preventDefault(); wantShoot = true; });
     
     const castleBtn = document.getElementById('mobileCastleBtn');
     castleBtn.addEventListener('touchstart', e => { e.preventDefault(); wantCastle = true; });
 
-    // Touch Joystick for Movement
     const moveInput = { x: 0, y: 0 };
     const moveZone = document.getElementById('moveZone');
     const moveKnob = document.getElementById('moveKnob');
@@ -290,12 +297,9 @@
           bullets = state.bullets || [];
           orbs = state.orbs || [];
           castles = state.castles || [];
-
-          // Clean update for active players only
           players = state.players || {};
 
           if (!players[myId]) {
-            // Player was killed & removed on server
             document.getElementById('deathScreen').style.display = 'flex';
           } else {
             updateHUD();
@@ -304,17 +308,6 @@
           console.error("Sync error:", err);
         }
       }, 50);
-    }
-
-    function spawnHitParticles(x, y, color) {
-      for (let i = 0; i < 6; i++) {
-        particles.push({
-          x: x, y: y,
-          vx: (Math.random() - 0.5) * 8,
-          vy: (Math.random() - 0.5) * 8,
-          color: color, life: 1.0
-        });
-      }
     }
 
     function updateLocalPhysics(dt) {
@@ -366,7 +359,6 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       
-      // Screen Shake
       let sx = 0, sy = 0;
       if (shakeAmount > 0) {
         sx = (Math.random() - 0.5) * shakeAmount;
@@ -376,7 +368,6 @@
 
       ctx.translate(canvas.width / 2 - localPos.x + sx, canvas.height / 2 - localPos.y + sy);
       
-      // Arena Grid
       ctx.strokeStyle = '#26334d';
       ctx.lineWidth = 2;
       for (let x = 0; x <= mapWidth; x += 100) {
@@ -386,7 +377,6 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mapWidth, y); ctx.stroke();
       }
 
-      // Castles / Bunkers
       castles.forEach(c => {
         ctx.save();
         ctx.translate(c.x, c.y);
@@ -394,13 +384,11 @@
         ctx.beginPath(); ctx.arc(0, 0, c.radius, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 5; ctx.stroke();
 
-        // Castle Health Bar
         ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(-30, -c.radius - 12, 60, 6);
         ctx.fillStyle = '#38bdf8'; ctx.fillRect(-30, -c.radius - 12, (c.hp / c.maxHp) * 60, 6);
         ctx.restore();
       });
 
-      // Collectible Orbs
       orbs.forEach(o => {
         ctx.beginPath();
         ctx.arc(o.x, o.y, 8, 0, Math.PI * 2);
@@ -408,7 +396,6 @@
         ctx.fill();
       });
 
-      // Bullets
       bullets.forEach(b => {
         ctx.beginPath();
         ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
@@ -416,7 +403,6 @@
         ctx.fill();
       });
 
-      // Particles
       for (let i = particles.length - 1; i >= 0; i--) {
         let pt = particles[i];
         pt.x += pt.vx; pt.y += pt.vy;
@@ -428,7 +414,6 @@
         ctx.globalAlpha = 1.0;
       }
 
-      // Render Active Players
       Object.values(players).forEach(p => {
         ctx.save();
         ctx.translate(p.x, p.y);
@@ -458,7 +443,6 @@
 
       ctx.restore();
       
-      // Minimap Rendering
       mctx.clearRect(0, 0, 100, 100);
       const scaleX = 100 / mapWidth;
       const scaleY = 100 / mapHeight;
