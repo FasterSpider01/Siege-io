@@ -1,92 +1,98 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Simple Multiplayer Game</title>
+    <title>3D Multiplayer Game</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f9;
-            margin-top: 50px;
-        }
-        canvas {
-            border: 2px solid #333;
-            background: #ffffff;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-        }
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
-
-    <h1>Multiplayer Square Game</h1>
-    <p>Use your <strong>Arrow Keys</strong> to move your square around!</p>
-    <canvas id="gameCanvas" width="500" height="500"></canvas>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        // Setup Scene, Camera, and Renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-        // Connect to the Python WebSocket server
+        // Add Lighting
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // Create Local Player (Green Cube)
+        const geometry = new THREE.BoxGeometry();
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const player = new THREE.Mesh(geometry, material);
+        scene.add(player);
+
+        camera.position.z = 5;
+
+        // Generate a random ID for this player
+        const playerId = Math.random().toString(36.substring(2, 9));
+        const otherPlayers = {};
+
+        // Connect to Python WebSocket Server
         const ws = new WebSocket('ws://localhost:8765');
 
-        // Generate a unique ID and random starting position/color for this player
-        const myId = Math.random().toString(36).substring(7);
-        let myData = {
-            id: myId,
-            x: Math.floor(Math.random() * 400) + 50,
-            y: Math.floor(Math.random() * 400) + 50,
-            color: '#' + Math.floor(Math.random() * 16777215).toString(16)
-        };
-
-        let players = {};
-
-        ws.onopen = () => {
-            // Send initial position when connected
-            ws.send(JSON.stringify(myData));
-        };
-
-        ws.onmessage = (event) => {
-            // Receive position updates from other players
+        ws.onmessage = function(event) {
             const data = JSON.parse(event.data);
-            players[data.id] = data;
+            
+            // If it's a new player, create their mesh (Red Cube)
+            if (!otherPlayers[data.id]) {
+                const oGeometry = new THREE.BoxGeometry();
+                const oMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                const oMesh = new THREE.Mesh(oGeometry, oMaterial);
+                scene.add(oMesh);
+                otherPlayers[data.id] = oMesh;
+            }
+
+            // Update other player's position
+            otherPlayers[data.id].position.set(data.x, data.y, data.z);
         };
 
-        // Listen for keyboard input to move the square
-        window.addEventListener('keydown', (e) => {
+        // Handle Keyboard Inputs
+        const speed = 0.1;
+        const keys = {};
+
+        window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+        function animate() {
+            requestAnimationFrame(animate);
+
             let moved = false;
-            const speed = 15;
+            if (keys['w']) { player.position.y += speed; moved = true; }
+            if (keys['s']) { player.position.y -= speed; moved = true; }
+            if (keys['a']) { player.position.x -= speed; moved = true; }
+            if (keys['d']) { player.position.x += speed; moved = true; }
 
-            if (e.key === 'ArrowUp') { myData.y -= speed; moved = true; }
-            if (e.key === 'ArrowDown') { myData.y += speed; moved = true; }
-            if (e.key === 'ArrowLeft') { myData.x -= speed; moved = true; }
-            if (e.key === 'ArrowRight') { myData.x += speed; moved = true; }
-
-            if (moved) {
-                ws.send(JSON.stringify(myData));
-            }
-        });
-
-        // Game render loop
-        function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw yourself
-            ctx.fillStyle = myData.color;
-            ctx.fillRect(myData.x, myData.y, 30, 30);
-
-            // Draw all other players
-            for (let id in players) {
-                let p = players[id];
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x, p.y, 30, 30);
+            // Send position to server if moved
+            if (moved && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    id: playerId,
+                    x: player.position.x,
+                    y: player.position.y,
+                    z: player.position.z
+                }));
             }
 
-            requestAnimationFrame(gameLoop);
+            renderer.render(scene, camera);
         }
 
-        gameLoop();
-    </script>
+        animate();
 
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
