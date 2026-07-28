@@ -1,470 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Siege Attack - Online Multiplayer Arena Game</title>
-  <meta name="description" content="Play Siege Attack online! Build structures, level up to 20, and battle players live.">
-  <link rel="canonical" href="https://siegeattack.wasmer.app/">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0e14; font-family: sans-serif; color: #fff; }
-    
-    #gameCanvas {
-      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0f172a; z-index: 1; display: block;
-    }
-    
-    #startScreen {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(10, 14, 23, 0.95); display: flex;
-      flex-direction: column; justify-content: center; align-items: center; z-index: 100;
-    }
-    .card { background: #1a2233; padding: 20px; border-radius: 12px; border: 1px solid #2e3c56; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 0 20px rgba(0,210,255,0.2); }
-    h1 { font-size: 2rem; color: #00d2ff; margin-bottom: 12px; font-weight: 900; letter-spacing: 2px; }
-    input[type="text"] { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #3b4d6e; background: #0f1522; color: #fff; margin-bottom: 15px; outline: none; font-size: 1rem; text-align: center; }
-    
-    .build-picker { margin-bottom: 15px; text-align: left; }
-    .build-picker label { font-size: 0.75rem; color: #88a0c0; text-transform: uppercase; display: block; margin-bottom: 5px; }
-    select { width: 100%; padding: 10px; background: #0f1522; color: #fff; border: 1px solid #3b4d6e; border-radius: 6px; font-size: 0.9rem; outline: none; }
-
-    .btn { width: 100%; padding: 14px; background: #00d2ff; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 8px; }
-    .btn-fs { background: #2ed573; color: #000; margin-bottom: 10px; }
-
-    #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-    #leaderboard { position: absolute; top: 15px; right: 15px; background: rgba(15, 21, 34, 0.85); padding: 12px; border-radius: 8px; width: 160px; border: 1px solid #2e3c56; }
-    #leaderboard h3 { font-size: 0.75rem; text-transform: uppercase; color: #88a0c0; margin-bottom: 6px; }
-    .leader-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 3px; }
-    
-    #bottomStats { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 12; }
-    .bar-container { width: 240px; height: 14px; background: rgba(0,0,0,0.6); border-radius: 7px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); position: relative; }
-    .bar-fill { height: 100%; width: 100%; transition: width 0.1s linear; }
-    #hpFill { background: #2ed573; }
-    #xpFill { background: #eccc68; }
-    .bar-text { position: absolute; width: 100%; text-align: center; font-size: 0.65rem; font-weight: bold; line-height: 14px; text-shadow: 1px 1px 2px #000; }
-    
-    #minimap { position: absolute; top: 15px; left: 15px; width: 100px; height: 100px; background: rgba(15, 21, 34, 0.85); border: 2px solid #2e3c56; border-radius: 8px; }
-
-    /* Mobile Controls */
-    #moveZone { position: absolute; bottom: 25px; left: 25px; width: 110px; height: 110px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(255, 255, 255, 0.2); pointer-events: auto; touch-action: none; display: none; }
-    #moveKnob { position: absolute; top: 32px; left: 32px; width: 45px; height: 45px; border-radius: 50%; background: rgba(0, 210, 255, 0.6); pointer-events: none; }
-    
-    #mobileShootBtn { position: absolute; bottom: 35px; right: 25px; width: 80px; height: 80px; border-radius: 50%; background: #ff4757; border: 3px solid #ff6b81; color: #fff; font-weight: 900; font-size: 1.1rem; pointer-events: auto; display: none; box-shadow: 0 0 15px rgba(255,71,87,0.5); }
-    #mobileBuildBtn { position: absolute; bottom: 130px; right: 35px; width: 60px; height: 60px; border-radius: 50%; background: #f59e0b; border: 2px solid #fbbf24; color: #000; font-weight: bold; font-size: 0.7rem; pointer-events: auto; display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siege Attack - Massive Multiplayer Arena Game</title>
+    <meta name="description" content="Play Siege Attack live! Join a massive 2500x2500 world, build 20 unique structures, level up to 20, and battle players worldwide.">
+    <meta name="keywords" content="Siege Attack, multiplayer game, browser game, io game, building game">
+    <meta property="og:title" content="Siege Attack">
+    <meta property="og:description" content="Real-time multiplayer arena game with 20 building structures and cross-platform play.">
+    <meta property="og:type" content="website">
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #111; color: #fff; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        #buildMenu { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .build-btn { background: #333; color: white; border: 1px solid #555; padding: 5px; cursor: pointer; font-size: 11px; border-radius: 4px; }
+        .build-btn:hover { background: #555; }
+        #controls { position: absolute; bottom: 20px; right: 20px; display: none; }
+        .mobile-btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; border: 2px solid #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-left: 10px; user-select: none; }
+        #joystick { position: absolute; bottom: 20px; left: 20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; display: none; }
+        #joystickKnob { position: absolute; top: 30px; left: 30px; width: 40px; height: 40px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+        #topBar { position: absolute; top: 10px; right: 10px; }
+        button.action { background: #222; color: #fff; border: 1px solid #777; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
+    </style>
 </head>
 <body>
-
-  <canvas id="gameCanvas"></canvas>
-
-  <div id="hud">
-    <div id="leaderboard">
-      <h3>Leaderboard</h3>
-      <div id="leaderList"></div>
+    <div id="topBar">
+        <button class="action" onclick="toggleFullscreen()">Fullscreen</button>
     </div>
-    <div id="bottomStats">
-      <div class="bar-container">
-        <div id="hpFill" class="bar-fill"></div>
-        <div id="hpText" class="bar-text">HP: 120 / 120</div>
-      </div>
-      <div class="bar-container">
-        <div id="xpFill" class="bar-fill"></div>
-        <div id="xpText" class="bar-text">LEVEL 1 / 20</div>
-      </div>
+    <div id="ui">
+        <h2 id="hudStats">Level: 1 | HP: 100/100 | XP: 0</h2>
     </div>
-    <canvas id="minimap"></canvas>
-
-    <div id="moveZone"><div id="moveKnob"></div></div>
-    <button id="mobileShootBtn">FIRE</button>
-    <button id="mobileBuildBtn">BUILD</button>
-  </div>
-
-  <div id="startScreen">
-    <div class="card">
-      <h1>SIEGE ATTACK</h1>
-      <button class="btn btn-fs" id="fsBtn" onclick="toggleFullscreen()">ENTER FULLSCREEN</button>
-      <input type="text" id="playerName" placeholder="Enter Hero Name" maxlength="12" value="Commander">
-      
-      <div class="build-picker">
-        <label>Select Structure to Build (Press 'E' or Button)</label>
-        <select id="buildTypeSelect">
-          <option value="Wood Wall">1. Wood Wall</option>
-          <option value="Stone Wall">2. Stone Wall</option>
-          <option value="Iron Wall">3. Iron Wall</option>
-          <option value="Spike Trap">4. Spike Trap</option>
-          <option value="Gate">5. Gate</option>
-          <option value="Healing Totem">6. Healing Totem</option>
-          <option value="Speed Pad">7. Speed Pad</option>
-          <option value="Mini Turret">8. Mini Turret</option>
-          <option value="Shield Gen">9. Shield Gen</option>
-          <option value="Mine">10. Mine</option>
-          <option value="Radar Tower">11. Radar Tower</option>
-          <option value="Barbed Wire">12. Barbed Wire</option>
-          <option value="Bounce Pad">13. Bounce Pad</option>
-          <option value="Ammo Station">14. Ammo Station</option>
-          <option value="Flame Trap">15. Flame Trap</option>
-          <option value="Ice Trap">16. Ice Trap</option>
-          <option value="Teleporter">17. Teleporter</option>
-          <option value="Mortar">18. Mortar</option>
-          <option value="Tesla Coil">19. Tesla Coil</option>
-          <option value="Vault">20. Vault</option>
-        </select>
-      </div>
-
-      <button class="btn" onclick="joinGame()">DEPLOY HERO</button>
+    <div id="buildMenu"></div>
+    <div id="joystick"><div id="joystickKnob"></div></div>
+    <div id="controls">
+        <div class="mobile-btn" id="fireBtn">FIRE</div>
+        <div class="mobile-btn" id="buildActionBtn">BUILD</div>
     </div>
-  </div>
+    <canvas id="gameCanvas"></canvas>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const minimapCanvas = document.getElementById('minimap');
-    const mctx = minimapCanvas.getContext('2d');
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
 
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      minimapCanvas.width = 100;
-      minimapCanvas.height = 100;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    }
-
-    const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-    if (isTouchDevice) {
-      document.getElementById('moveZone').style.display = 'block';
-      document.getElementById('mobileShootBtn').style.display = 'block';
-      document.getElementById('mobileBuildBtn').style.display = 'block';
-    }
-
-    let myId = null;
-    let players = {};
-    let bullets = [];
-    let orbs = [];
-    let structures = [];
-    let mapWidth = 2500;
-    let mapHeight = 2500;
-
-    let localPos = { x: 1250, y: 1250 };
-    let localAngle = 0;
-    let wantShoot = false;
-    let wantBuild = false;
-    let lastTime = performance.now();
-
-    const keys = {};
-    const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-
-    window.addEventListener('keydown', e => {
-      keys[e.key.toLowerCase()] = true;
-      if (e.key.toLowerCase() === 'e') wantBuild = true;
-    });
-    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-    window.addEventListener('mousemove', e => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-    });
-    window.addEventListener('mousedown', e => {
-      if (e.button === 0 && myId && players[myId] && players[myId].hp > 0 && !isTouchDevice) {
-        wantShoot = true;
-      }
-    });
-
-    const shootBtn = document.getElementById('mobileShootBtn');
-    shootBtn.addEventListener('touchstart', e => { e.preventDefault(); wantShoot = true; });
-    
-    const buildBtn = document.getElementById('mobileBuildBtn');
-    buildBtn.addEventListener('touchstart', e => { e.preventDefault(); wantBuild = true; });
-
-    const moveInput = { x: 0, y: 0 };
-    const moveZone = document.getElementById('moveZone');
-    const moveKnob = document.getElementById('moveKnob');
-    let moveTouchId = null;
-    let joystickCenter = { x: 0, y: 0 };
-
-    moveZone.addEventListener('touchstart', e => {
-      if (moveTouchId !== null) return;
-      const t = e.changedTouches[0];
-      moveTouchId = t.identifier;
-      const r = moveZone.getBoundingClientRect();
-      joystickCenter = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-      updateJoystick(t.clientX, t.clientY);
-    });
-
-    window.addEventListener('touchmove', e => {
-      if (moveTouchId === null) return;
-      for (let t of e.changedTouches) {
-        if (t.identifier === moveTouchId) {
-          updateJoystick(t.clientX, t.clientY);
-          break;
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
-      }
-    });
+        window.addEventListener('resize', resize);
+        resize();
 
-    const resetJoystick = e => {
-      if (moveTouchId === null) return;
-      for (let t of e.changedTouches) {
-        if (t.identifier === moveTouchId) {
-          moveTouchId = null;
-          moveKnob.style.transform = `translate(0px, 0px)`;
-          moveInput.x = 0;
-          moveInput.y = 0;
-          break;
-        }
-      }
-    };
-    window.addEventListener('touchend', resetJoystick);
-    window.addEventListener('touchcancel', resetJoystick);
+        const structuresList = [
+            "Wood Wall", "Stone Wall", "Iron Wall", "Gate", "Vault", "Barbed Wire",
+            "Spike Trap", "Flame Trap", "Ice Trap", "Mine", "Tesla Coil",
+            "Healing Totem", "Speed Pad", "Shield Gen", "Radar Tower", "Bounce Pad", 
+            "Ammo Station", "Teleporter", "Mortar", "Mini Turret"
+        ];
 
-    function updateJoystick(tx, ty) {
-      let dx = tx - joystickCenter.x;
-      let dy = ty - joystickCenter.y;
-      let dist = Math.hypot(dx, dy);
-      let maxDist = 32;
-      if (dist > maxDist) {
-        dx = (dx / dist) * maxDist;
-        dy = (dy / dist) * maxDist;
-      }
-      moveKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-      moveInput.x = dx / maxDist;
-      moveInput.y = dy / maxDist;
-    }
+        const buildMenu = document.getElementById("buildMenu");
+        let selectedStructure = structuresList[0];
 
-    async function joinGame() {
-      const name = document.getElementById('playerName').value || 'Hero';
-      try {
-        const res = await fetch('/api/join', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name })
+        structuresList.forEach(struct => {
+            const btn = document.createElement("button");
+            btn.className = "build-btn";
+            btn.innerText = struct;
+            btn.onclick = () => { selectedStructure = struct; };
+            buildMenu.appendChild(btn);
         });
-        const data = await res.json();
-        myId = data.id;
-        mapWidth = data.mapWidth;
-        mapHeight = data.mapHeight;
-        players = data.players || {};
-        orbs = data.orbs || [];
-        structures = data.structures || [];
-        
-        if (players[myId]) {
-          localPos.x = players[myId].x;
-          localPos.y = players[myId].y;
+
+        let playerId = null;
+        let gameState = { players: {}, orbs: [], structures: [] };
+        let myPos = { x: 1250, y: 1250 };
+        const keys = {};
+
+        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+        canvas.addEventListener('click', e => {
+            if (!playerId) return;
+            const worldX = myPos.x + (e.clientX - canvas.width / 2);
+            const worldY = myPos.y + (e.clientY - canvas.height / 2);
+            fetch('/build', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ structure: { type: selectedStructure, x: worldX, y: worldY, owner: playerId } })
+            });
+        });
+
+        // Detect mobile
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.getElementById('controls').style.display = 'block';
+            document.getElementById('joystick').style.display = 'block';
         }
 
-        document.getElementById('startScreen').style.display = 'none';
-        startNetworkSync();
-      } catch(e) {
-        console.error("Failed to join game:", e);
-      }
-    }
-
-    function returnToHomeScreen() {
-      document.getElementById('startScreen').style.display = 'flex';
-      players = {};
-      myId = null;
-    }
-
-    function startNetworkSync() {
-      setInterval(async () => {
-        if (!myId) return;
-
-        const selectedBuildType = document.getElementById('buildTypeSelect').value;
-        const payload = {
-          id: myId,
-          x: localPos.x,
-          y: localPos.y,
-          angle: localAngle,
-          shoot: wantShoot,
-          shootAngle: localAngle,
-          buildItem: wantBuild,
-          buildType: selectedBuildType
-        };
-        wantShoot = false;
-        wantBuild = false;
-
-        try {
-          const res = await fetch('/api/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const state = await res.json();
-          bullets = state.bullets || [];
-          orbs = state.orbs || [];
-          structures = state.structures || [];
-          players = state.players || {};
-
-          if (!players[myId]) {
-            returnToHomeScreen();
-          } else {
-            updateHUD();
-          }
-        } catch(err) {
-          console.error("Sync error:", err);
-        }
-      }, 50);
-    }
-
-    function updateLocalPhysics(dt) {
-      if (!myId || !players[myId]) return;
-      const p = players[myId];
-
-      let dx = 0, dy = 0;
-      if (keys['w'] || keys['arrowup']) dy -= 1;
-      if (keys['s'] || keys['arrowdown']) dy += 1;
-      if (keys['a'] || keys['arrowleft']) dx -= 1;
-      if (keys['d'] || keys['arrowright']) dx += 1;
-
-      if (moveInput.x !== 0 || moveInput.y !== 0) {
-        dx = moveInput.x;
-        dy = moveInput.y;
-      }
-
-      const len = Math.hypot(dx, dy);
-      if (len > 0) {
-        const speed = p.speed * 60; 
-        localPos.x += (dx / (len > 1 ? len : 1)) * speed * dt;
-        localPos.y += (dy / (len > 1 ? len : 1)) * speed * dt;
-
-        localPos.x = Math.max(30, Math.min(mapWidth - 30, localPos.x));
-        localPos.y = Math.max(30, Math.min(mapHeight - 30, localPos.y));
-
-        if (isTouchDevice) {
-          localAngle = Math.atan2(dy, dx);
-        }
-      }
-
-      if (!isTouchDevice) {
-        const worldX = mouse.x - canvas.width / 2 + localPos.x;
-        const worldY = mouse.y - canvas.height / 2 + localPos.y;
-        localAngle = Math.atan2(worldY - localPos.y, worldX - localPos.x);
-      }
-
-      p.x = localPos.x;
-      p.y = localPos.y;
-      p.angle = localAngle;
-    }
-
-    function render(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
-
-      updateLocalPhysics(dt);
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      
-      ctx.translate(canvas.width / 2 - localPos.x, canvas.height / 2 - localPos.y);
-      
-      ctx.strokeStyle = '#26334d';
-      ctx.lineWidth = 2;
-      for (let x = 0; x <= mapWidth; x += 100) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, mapHeight); ctx.stroke();
-      }
-      for (let y = 0; y <= mapHeight; y += 100) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mapWidth, y); ctx.stroke();
-      }
-
-      structures.forEach(s => {
-        ctx.save();
-        ctx.translate(s.x, s.y);
-        ctx.fillStyle = '#475569';
-        ctx.beginPath(); ctx.arc(0, 0, s.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 4; ctx.stroke();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(s.type, 0, -s.radius - 16);
-
-        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(-30, -s.radius - 10, 60, 5);
-        ctx.fillStyle = '#38bdf8'; ctx.fillRect(-30, -s.radius - 10, Math.max(0, (s.hp / s.maxHp) * 60), 5);
-        ctx.restore();
-      });
-
-      orbs.forEach(o => {
-        ctx.beginPath();
-        ctx.arc(o.x, o.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = o.type === 'health' ? '#10b981' : (o.type === 'speed' ? '#f59e0b' : (o.type === 'damage' ? '#ef4444' : '#3b82f6'));
-        ctx.fill();
-      });
-
-      bullets.forEach(b => {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = '#f97316';
-        ctx.fill();
-      });
-
-      Object.values(players).forEach(p => {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        
-        if (p.shield) {
-          ctx.beginPath(); ctx.arc(0, 0, 36, 0, Math.PI * 2);
-          ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3; ctx.stroke();
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
         }
 
-        ctx.rotate(p.angle);
-        ctx.fillStyle = '#0284c7';
-        ctx.fillRect(-20, -20, 40, 40);
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, -6, 30, 12);
-        ctx.restore();
-        
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${p.name} [Lv.${p.level}]`, p.x, p.y - 32);
-        
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(p.x - 25, p.y - 26, 50, 6);
-        ctx.fillStyle = '#10b981';
-        ctx.fillRect(p.x - 25, p.y - 26, Math.max(0, (p.hp / p.maxHp) * 50), 6);
-      });
+        // Join game
+        fetch('/join', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                playerId = data.playerId;
+            });
 
-      ctx.restore();
-      
-      mctx.clearRect(0, 0, 100, 100);
-      const scaleX = 100 / mapWidth;
-      const scaleY = 100 / mapHeight;
-      Object.values(players).forEach(p => {
-        mctx.fillStyle = p.id === myId ? '#10b981' : '#ef4444';
-        mctx.beginPath();
-        mctx.arc(p.x * scaleX, p.y * scaleY, 3, 0, Math.PI * 2);
-        mctx.fill();
-      });
+        // Game Loop & Sync
+        setInterval(() => {
+            if (!playerId) return;
 
-      requestAnimationFrame(render);
-    }
+            let speed = 5;
+            if (keys['w'] || keys['arrowup']) myPos.y -= speed;
+            if (keys['s'] || keys['arrowdown']) myPos.y += speed;
+            if (keys['a'] || keys['arrowleft']) myPos.x -= speed;
+            if (keys['d'] || keys['arrowright']) myPos.x += speed;
 
-    function updateHUD() {
-      if (!myId || !players[myId]) return;
-      const p = players[myId];
-      document.getElementById('hpFill').style.width = `${Math.max(0, (p.hp / p.maxHp) * 100)}%`;
-      document.getElementById('hpText').innerText = `HP: ${Math.ceil(p.hp)} / ${p.maxHp}`;
-      
-      const xpNeeded = p.level * 200;
-      document.getElementById('xpFill').style.width = `${Math.min(100, (p.xp / xpNeeded) * 100)}%`;
-      document.getElementById('xpText').innerText = `LEVEL ${p.level} / 20`;
+            myPos.x = Math.max(0, Math.min(2500, myPos.x));
+            myPos.y = Math.max(0, Math.min(2500, myPos.y));
 
-      const sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0, 5);
-      const list = document.getElementById('leaderList');
-      list.innerHTML = '';
-      sorted.forEach((lp, i) => {
-        const row = document.createElement('div');
-        row.className = 'leader-row';
-        row.innerHTML = `<span>${i+1}. ${lp.name}</span><strong>${lp.score}</strong>`;
-        list.appendChild(row);
-      });
-    }
+            fetch('/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: playerId, x: myPos.x, y: myPos.y })
+            }).then(res => res.json()).then(() => {});
 
-    requestAnimationFrame(render);
-  </script>
+            fetch('/state')
+                .then(res => res.json())
+                .then(data => {
+                    gameState = data;
+                    if (gameState.players[playerId]) {
+                        let p = gameState.players[playerId];
+                        document.getElementById('hudStats').innerText = `Level: ${p.level} | HP: ${p.hp}/${p.maxHp} | XP: ${p.xp}`;
+                    }
+                });
+        }, 1000 / 30);
+
+        // Render Loop
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (playerId && gameState.players[playerId]) {
+                myPos.x = gameState.players[playerId].x;
+                myPos.y = gameState.players[playerId].y;
+            }
+
+            ctx.save();
+            ctx.translate(canvas.width / 2 - myPos.x, canvas.height / 2 - myPos.y);
+
+            // Draw World Boundary (2500x2500)
+            ctx.strokeStyle = "#444";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, 2500, 2500);
+
+            // Draw Orbs
+            ctx.fillStyle = "#00ffcc";
+            gameState.orbs.forEach(orb => {
+                ctx.beginPath();
+                ctx.arc(orb.x, orb.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Structures
+            ctx.fillStyle = "#888";
+            gameState.structures.forEach(s => {
+                ctx.fillRect(s.x - 15, s.y - 15, 30, 30);
+            });
+
+            // Draw Players
+            for (let id in gameState.players) {
+                let p = gameState.players[id];
+                ctx.fillStyle = id === playerId ? "#ff5555" : "#5555ff";
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "#fff";
+                ctx.font = "12px sans-serif";
+                ctx.fillText(`Lvl ${p.level}`, p.x - 15, p.y - 25);
+            }
+
+            ctx.restore();
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    </script>
 </body>
 </html>
