@@ -1,11 +1,12 @@
 import json
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import os
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-# Dictionary to hold player positions in memory
+# Dictionary to track active player coordinates in memory
 players = {}
 
 
-class GameServer(BaseHTTPRequestHandler):
+class GameServer(SimpleHTTPRequestHandler):
 
   def do_OPTIONS(self):
     # Handle CORS preflight requests from GitHub Pages
@@ -39,7 +40,7 @@ class GameServer(BaseHTTPRequestHandler):
       self.end_headers()
 
   def do_GET(self):
-    # Return all player positions to the client
+    # Return all player coordinates to the client frontend
     self.send_response(200)
     self.send_header("Access-Control-Allow-Origin", "*")
     self.send_header("Content-Type", "application/json")
@@ -47,12 +48,10 @@ class GameServer(BaseHTTPRequestHandler):
     self.wfile.write(json.dumps(players).encode("utf-8"))
 
 
-def run(server_class=HTTPServer, handler_class=GameServer, port=8080):
-  server_address = ("", port)
-  httpd = server_class(server_address, handler_class)
-  print(f"Starting HTTP game server on port {port}...")
-  httpd.serve_forever()
-
-
 if __name__ == "__main__":
-  run()
+  host = os.environ.get("HOST", "0.0.0.0")
+  port = int(os.environ.get("PORT", 8080))
+
+  server = HTTPServer((host, port), GameServer)
+  print(f"Starting Wasmer game server on http://{host}:{port}")
+  server.serve_forever()
