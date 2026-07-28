@@ -1,3 +1,4 @@
+
 import http.server
 import json
 import math
@@ -5,283 +6,1257 @@ import os
 import random
 import threading
 import time
-import urllib.parse
 import uuid
+import urllib.parse
 
-# World configuration & Spatial Grid Setup
+# =========================================================
+# CONFIGURATION
+# =========================================================
+
 WORLD_SIZE = 2500
-GRID_SIZE = 50  # 50x50 units per tile coordinate grid
-TICKS_PER_SECOND = 30
-TICK_INTERVAL = 1.0 / TICKS_PER_SECOND
+TILE_SIZE = 50
 
-# Game State
-gameState = {
+GRID_WIDTH = WORLD_SIZE // TILE_SIZE
+TICK_RATE = 60
+TICK_TIME = 1 / TICK_RATE
+
+
+# =========================================================
+# GAME STATE
+# =========================================================
+
+game = {
     "players": {},
-    "orbs": [],
-    "structures": [],
     "projectiles": [],
-}
-
-# 20 Unique Buildable Structures (Categorized with resource costs and health pools)
-STRUCTURE_TYPES = {
-    # Defenses
-    "Wood Wall": {"cost": 20, "hp": 150, "category": "Defenses"},
-    "Stone Wall": {"cost": 40, "hp": 300, "category": "Defenses"},
-    "Iron Wall": {"cost": 70, "hp": 600, "category": "Defenses"},
-    "Gate": {"cost": 50, "hp": 250, "category": "Defenses"},
-    "Vault": {"cost": 100, "hp": 1000, "category": "Defenses"},
-    "Barbed Wire": {"cost": 30, "hp": 100, "category": "Defenses"},
-    # Traps & Hazards
-    "Spike Trap": {"cost": 25, "hp": 80, "category": "Traps & Hazards"},
-    "Flame Trap": {"cost": 45, "hp": 120, "category": "Traps & Hazards"},
-    "Ice Trap": {"cost": 40, "hp": 120, "category": "Traps & Hazards"},
-    "Mine": {"cost": 35, "hp": 50, "category": "Traps & Hazards"},
-    "Tesla Coil": {"cost": 90, "hp": 200, "category": "Traps & Hazards"},
-    # Support & Utility
-    "Healing Totem": {"cost": 60, "hp": 150, "category": "Support & Utility"},
-    "Speed Pad": {"cost": 30, "hp": 100, "category": "Support & Utility"},
-    "Shield Gen": {"cost": 80, "hp": 300, "category": "Support & Utility"},
-    "Radar Tower": {"cost": 70, "hp": 200, "category": "Support & Utility"},
-    "Bounce Pad": {"cost": 35, "hp": 100, "category": "Support & Utility"},
-    "Ammo Station": {"cost": 50, "hp": 180, "category": "Support & Utility"},
-    "Teleporter": {"cost": 120, "hp": 250, "category": "Support & Utility"},
-    "Mortar": {"cost": 100, "hp": 220, "category": "Support & Utility"},
-    "Mini Turret": {"cost": 85, "hp": 200, "category": "Support & Utility"},
+    "structures": [],
+    "orbs": [],
+    "scrap": [],
+    "effects": []
 }
 
 lock = threading.Lock()
 
 
-def init_orbs():
-  with lock:
-    gameState["orbs"] = []
-    for _ in range(80):
-      gameState["orbs"].append({
-          "id": str(uuid.uuid4()),
-          "x": random.randint(100, WORLD_SIZE - 100),
-          "y": random.randint(100, WORLD_SIZE - 100),
-          "xp": random.randint(10, 25),
-      })
+# =========================================================
+# SPATIAL GRID
+# =========================================================
+
+class SpatialGrid:
+
+    def __init__(self):
+        self.cells = {}
+
+    def key(self, x, y):
+        return (
+            int(x // TILE_SIZE),
+            int(y // TILE_SIZE)
+        )
+
+    def clear(self):
+        self.cells.clear()
+
+    def add(self, entity):
+        cell = self.key(entity["x"], entity["y"])
+
+        if cell not in self.cells:
+            self.cells[cell] = []
+
+        self.cells[cell].append(entity)
+
+    def nearby(self, x, y, radius=100):
+
+        cx, cy = self.key(x, y)
+
+        results = []
+
+        tiles = int(radius / TILE_SIZE) + 1
+
+        for gx in range(cx - tiles, cx + tiles + 1):
+            for gy in range(cy - tiles, cy + tiles + 1):
+
+                if (gx, gy) in self.cells:
+                    results.extend(
+                        self.cells[(gx, gy)]
+                    )
+
+        return results
 
 
-init_orbs()
+player_grid = SpatialGrid()
+structure_grid = SpatialGrid()
 
 
-def game_loop():
-  """Authoritative backend loop tracking 30 ticks per second for vector physics
+# =========================================================
+# BUILDINGS
+# =========================================================
 
-  and spatial collision checks.
-  """
-  while True:
-    start_time = time.time()
-    with lock:
-      # Update Projectile Vectors & Collisions
-      active_projectiles = []
-      for proj in gameState["projectiles"]:
-        proj["x"] += proj["vx"]
-        proj["y"] += proj["vy"]
-        proj["life"] -= 1
+STRUCTURES = {
 
-        if (
-            proj["x"] < 0
-            or proj["x"] > WORLD_SIZE
-            or proj["y"] < 0
-            or proj["y"] > WORLD_SIZE
-            or proj["life"] <= 0
-        ):
-          continue
+    # defenses
+    "Wood Wall": {
+        "cost":20,
+        "hp":150
+    },
 
-        hit = False
-        for pid, player in list(gameState["players"].items()):
-          if pid == proj["owner"]:
-            continue
-          dist = ((player["x"] - proj["x"]) ** 2 + (player["y"] - proj["y"]) ** 2) ** 0.5
-          if dist < 24:
-            damage = proj.get("damage", 15)
-            player["hp"] -= damage
-            hit = True
+    "Stone Wall":{
+        "cost":40,
+        "hp":350
+    },
 
-            # Instant Elimination Logic
-            if player["hp"] <= 0:
-              killer_id = proj["owner"]
-              if killer_id in gameState["players"]:
-                # Award scrap and score to victor
-                gameState["players"][killer_id]["scrap"] += player.get(
-                    "scrap", 50
-                ) + (player["level"] * 15)
-                gameState["players"][killer_id]["score"] += 500
+    "Iron Wall":{
+        "cost":70,
+        "hp":700
+    },
 
-              # Respawn eliminated player back to start conditions
-              player["x"] = random.randint(300, WORLD_SIZE - 300)
-              player["y"] = random.randint(300, WORLD_SIZE - 300)
-              player["hp"] = player["maxHp"]
-              player["scrap"] = 50
-              player["level"] = 1
-              player["xp"] = 0
-            break
+    "Gate":{
+        "cost":50,
+        "hp":300
+    },
 
-        if not hit:
-          active_projectiles.append(proj)
-      gameState["projectiles"] = active_projectiles
+    "Vault":{
+        "cost":120,
+        "hp":1200
+    },
 
-      # Replenish Orbs
-      while len(gameState["orbs"]) < 80:
-        gameState["orbs"].append({
-            "id": str(uuid.uuid4()),
-            "x": random.randint(50, WORLD_SIZE - 50),
-            "y": random.randint(50, WORLD_SIZE - 50),
-            "xp": random.randint(10, 25),
+    "Barbed Wire":{
+        "cost":30,
+        "hp":100
+    },
+
+
+    # traps
+
+    "Spike Trap":{
+        "cost":25,
+        "hp":100
+    },
+
+    "Flame Trap":{
+        "cost":45,
+        "hp":150
+    },
+
+    "Ice Trap":{
+        "cost":40,
+        "hp":150
+    },
+
+    "Mine":{
+        "cost":35,
+        "hp":80
+    },
+
+    "Tesla Coil":{
+        "cost":90,
+        "hp":250
+    },
+
+
+    # utilities
+
+    "Healing Totem":{
+        "cost":60,
+        "hp":200
+    },
+
+    "Speed Pad":{
+        "cost":30,
+        "hp":100
+    },
+
+    "Shield Gen":{
+        "cost":80,
+        "hp":350
+    },
+
+    "Radar Tower":{
+        "cost":70,
+        "hp":250
+    },
+
+    "Bounce Pad":{
+        "cost":35,
+        "hp":120
+    },
+
+    "Ammo Station":{
+        "cost":50,
+        "hp":200
+    },
+
+    "Teleporter":{
+        "cost":120,
+        "hp":300
+    },
+
+    "Mortar":{
+        "cost":100,
+        "hp":250
+    },
+
+    "Mini Turret":{
+        "cost":85,
+        "hp":220
+    }
+}
+
+
+
+# =========================================================
+# PLAYER CREATION
+# =========================================================
+
+
+def create_player():
+
+    return {
+
+        "id":str(uuid.uuid4()),
+
+        "x":random.randint(
+            200,
+            WORLD_SIZE-200
+        ),
+
+        "y":random.randint(
+            200,
+            WORLD_SIZE-200
+        ),
+
+
+        "vx":0,
+        "vy":0,
+
+
+        "hp":100,
+        "max_hp":100,
+
+
+        "level":1,
+        "xp":0,
+
+
+        "speed":5,
+        "damage":15,
+
+
+        "scrap":50,
+
+        "score":0
+    }
+
+
+
+# =========================================================
+# LEVEL SYSTEM
+# =========================================================
+
+
+def add_xp(player, amount):
+
+    player["xp"] += amount
+
+
+    needed = player["level"] * 100
+
+
+    while (
+        player["xp"] >= needed
+        and player["level"] < 20
+    ):
+
+        player["xp"] -= needed
+
+        player["level"] += 1
+
+
+        # scaling
+
+        player["max_hp"] += 25
+
+        player["hp"] = player["max_hp"]
+
+        player["speed"] += .15
+
+        player["damage"] += 3
+
+
+        needed = player["level"] * 100
+
+
+
+# =========================================================
+# ORBS
+# =========================================================
+
+
+def spawn_orb():
+
+    return {
+
+        "id":str(uuid.uuid4()),
+
+        "x":random.randint(
+            50,
+            WORLD_SIZE-50
+        ),
+
+        "y":random.randint(
+            50,
+            WORLD_SIZE-50
+        ),
+
+        "xp":random.randint(
+            10,
+            30
+        )
+    }
+
+
+
+def refill_orbs():
+
+    while len(game["orbs"]) < 100:
+        game["orbs"].append(
+            spawn_orb()
+        )
+
+
+
+# =========================================================
+# SCRAP DROPS
+# =========================================================
+
+
+def drop_scrap(x,y,amount):
+
+    for _ in range(amount):
+
+        game["scrap"].append({
+
+            "x":x+random.randint(-30,30),
+
+            "y":y+random.randint(-30,30),
+
+            "value":1
         })
 
-    elapsed = time.time() - start_time
-    time.sleep(max(0, TICK_INTERVAL - elapsed))
 
 
-threading.Thread(target=game_loop, daemon=True).start()
+# =========================================================
+# RESET GRIDS
+# =========================================================
 
 
-class GameServer(http.server.BaseHTTPRequestHandler):
+def rebuild_grids():
 
-  def do_GET(self):
-    parsed_path = urllib.parse.urlparse(self.path)
-    if parsed_path.path == "/" or parsed_path.path == "/index.html":
-      self.send_response(200)
-      self.send_header("Content-Type", "text/html")
-      self.end_headers()
-      index_path = os.path.join(
-          os.path.dirname(__file__), "public", "index.html"
-      )
-      if os.path.exists(index_path):
-        with open(index_path, "rb") as f:
-          self.wfile.write(f.read())
-      else:
-        self.wfile.write(b"index.html not found in src/public/")
-    elif parsed_path.path == "/state":
-      self.send_response(200)
-      self.send_header("Content-Type", "application/json")
-      self.send_header("Access-Control-Allow-Origin", "*")
-      self.end_headers()
-      with lock:
-        self.wfile.write(json.dumps(gameState).encode("utf-8"))
-    else:
-      self.send_response(404)
-      self.end_headers()
+    player_grid.clear()
+    structure_grid.clear()
 
-  def do_POST(self):
-    content_length = int(self.headers.get("Content-Length", 0))
-    try:
-      data = json.loads(self.rfile.read(content_length).decode("utf-8"))
-    except:
-      data = {}
 
-    parsed_path = urllib.parse.urlparse(self.path)
+    for p in game["players"].values():
+        player_grid.add(p)
 
-    with lock:
-      if parsed_path.path == "/join":
-        player_id = str(uuid.uuid4())
-        gameState["players"][player_id] = {
-            "id": player_id,
-            "x": random.randint(400, WORLD_SIZE - 400),
-            "y": random.randint(400, WORLD_SIZE - 400),
-            "hp": 100,
-            "maxHp": 100,
-            "level": 1,
-            "xp": 0,
-            "scrap": 50,
-            "score": 0,
-        }
-        self.send_json({"playerId": player_id})
 
-      elif parsed_path.path == "/update":
-        pid = data.get("id")
-        if pid in gameState["players"]:
-          p = gameState["players"][pid]
-          p["x"] = max(0, min(WORLD_SIZE, data.get("x", p["x"])))
-          p["y"] = max(0, min(WORLD_SIZE, data.get("y", p["y"])))
+    for s in game["structures"]:
+        structure_grid.add(s)
 
-          # Orb collection & 20 Level Progression Scaling
-          remaining_orbs = []
-          for orb in gameState["orbs"]:
-            dist = ((p["x"] - orb["x"]) ** 2 + (p["y"] - orb["y"]) ** 2) ** 0.5
-            if dist < 35:
-              p["xp"] += orb["xp"]
-              p["scrap"] += 5
-              required_xp = p["level"] * 120
-              if p["xp"] >= required_xp and p["level"] < 20:
-                p["level"] += 1
-                p["maxHp"] += 25
-                p["hp"] = p["maxHp"]
-            else:
-              remaining_orbs.append(orb)
-          gameState["orbs"] = remaining_orbs
 
-        self.send_json({"status": "success"})
 
-      elif parsed_path.path == "/shoot":
-        pid = data.get("playerId")
-        angle = data.get("angle", 0)
-        if pid in gameState["players"]:
-          p = gameState["players"][pid]
-          damage = 15 + (p["level"] * 3)
-          speed = 18
-          gameState["projectiles"].append({
-              "id": str(uuid.uuid4()),
-              "owner": pid,
-              "x": p["x"],
-              "y": p["y"],
-              "vx": math.cos(angle) * speed,
-              "vy": math.sin(angle) * speed,
-              "damage": damage,
-              "life": 45,
-          })
-        self.send_json({"status": "success"})
+# =========================================================
+# STARTUP WORLD
+# =========================================================
 
-      elif parsed_path.path == "/build":
-        pid = data.get("playerId")
-        stype = data.get("type")
-        x = data.get("x")
-        y = data.get("y")
 
-        if pid in gameState["players"] and stype in STRUCTURE_TYPES:
-          p = gameState["players"][pid]
-          cost = STRUCTURE_TYPES[stype]["cost"]
-          if p["scrap"] >= cost:
-            p["scrap"] -= cost
-            # Grid snapping mechanism (GRID_SIZE alignment)
-            grid_x = round(x / GRID_SIZE) * GRID_SIZE
-            grid_y = round(y / GRID_SIZE) * GRID_SIZE
-            gameState["structures"].append({
-                "id": str(uuid.uuid4()),
-                "owner": pid,
-                "type": stype,
-                "x": grid_x,
-                "y": grid_y,
-                "hp": STRUCTURE_TYPES[stype]["hp"],
-                "maxHp": STRUCTURE_TYPES[stype]["hp"],
-            })
-            self.send_json({"status": "success", "built": True})
-          else:
-            self.send_json({"status": "error", "message": "Insufficient scrap"})
-        else:
-          self.send_json({"status": "error", "message": "Invalid build request"})
-      else:
-        self.send_response(404)
+for _ in range(100):
+
+    game["orbs"].append(
+        spawn_orb()
+    )
+
+
+# =========================================================
+# COMBAT CONSTANTS
+# =========================================================
+
+PROJECTILE_SPEED = 20
+PROJECTILE_LIFE = 90
+
+PLAYER_RADIUS = 22
+STRUCTURE_RADIUS = 25
+
+
+
+# =========================================================
+# PROJECTILES
+# =========================================================
+
+
+def create_projectile(player, angle):
+
+    return {
+
+        "id": str(uuid.uuid4()),
+
+        "owner": player["id"],
+
+        "x": player["x"],
+
+        "y": player["y"],
+
+
+        "vx": math.cos(angle) * PROJECTILE_SPEED,
+
+        "vy": math.sin(angle) * PROJECTILE_SPEED,
+
+
+        "damage": player["damage"],
+
+        "life": PROJECTILE_LIFE
+    }
+
+
+
+# =========================================================
+# DISTANCE CHECK
+# =========================================================
+
+
+def distance(a,b):
+
+    return math.sqrt(
+        (a["x"]-b["x"])**2 +
+        (a["y"]-b["y"])**2
+    )
+
+
+
+# =========================================================
+# PLAYER DAMAGE
+# =========================================================
+
+
+def damage_player(target, damage, attacker=None):
+
+    target["hp"] -= damage
+
+
+    if target["hp"] <= 0:
+
+
+        if attacker:
+
+            attacker["score"] += 500
+
+            attacker["scrap"] += (
+                target["scrap"]
+            )
+
+
+        drop_scrap(
+            target["x"],
+            target["y"],
+            10
+        )
+
+
+        respawn_player(target)
+
+
+
+# =========================================================
+# RESPAWN
+# =========================================================
+
+
+def respawn_player(player):
+
+    player["x"] = random.randint(
+        200,
+        WORLD_SIZE-200
+    )
+
+    player["y"] = random.randint(
+        200,
+        WORLD_SIZE-200
+    )
+
+
+    player["hp"] = player["max_hp"]
+
+    player["level"] = 1
+
+    player["xp"] = 0
+
+    player["damage"] = 15
+
+    player["speed"] = 5
+
+
+
+# =========================================================
+# STRUCTURE DAMAGE
+# =========================================================
+
+
+def damage_structure(structure, damage):
+
+    structure["hp"] -= damage
+
+
+    if structure["hp"] <= 0:
+
+        if structure in game["structures"]:
+
+            game["structures"].remove(
+                structure
+            )
+
+
+        game["effects"].append({
+
+            "type":"destroy",
+
+            "x":structure["x"],
+
+            "y":structure["y"]
+
+        })
+
+
+
+# =========================================================
+# PROJECTILE UPDATE
+# =========================================================
+
+
+def update_projectiles():
+
+    alive = []
+
+
+    for proj in game["projectiles"]:
+
+
+        proj["x"] += proj["vx"]
+
+        proj["y"] += proj["vy"]
+
+
+        proj["life"] -= 1
+
+
+        if proj["life"] <= 0:
+            continue
+
+
+        if (
+            proj["x"] < 0 or
+            proj["y"] < 0 or
+            proj["x"] > WORLD_SIZE or
+            proj["y"] > WORLD_SIZE
+        ):
+            continue
+
+
+
+        hit = False
+
+
+
+        # player collision
+
+        for player in player_grid.nearby(
+            proj["x"],
+            proj["y"],
+            50
+        ):
+
+
+            if player["id"] == proj["owner"]:
+                continue
+
+
+            if distance(
+                proj,
+                player
+            ) < PLAYER_RADIUS:
+
+
+                owner = game["players"].get(
+                    proj["owner"]
+                )
+
+
+                damage_player(
+                    player,
+                    proj["damage"],
+                    owner
+                )
+
+
+                hit = True
+
+                break
+
+
+
+        if hit:
+            continue
+
+
+
+        # structure collision
+
+        for structure in structure_grid.nearby(
+            proj["x"],
+            proj["y"],
+            50
+        ):
+
+
+            if distance(
+                proj,
+                structure
+            ) < STRUCTURE_RADIUS:
+
+
+                damage_structure(
+                    structure,
+                    proj["damage"]
+                )
+
+
+                hit=True
+
+                break
+
+
+
+        if not hit:
+
+            alive.append(
+                proj
+            )
+
+
+    game["projectiles"] = alive
+
+
+
+# =========================================================
+# ORB + SCRAP COLLECTION
+# =========================================================
+
+
+def update_resources():
+
+    remove=[]
+
+
+    for player in game["players"].values():
+
+
+        for orb in game["orbs"]:
+
+            if distance(
+                player,
+                orb
+            ) < 35:
+
+
+                add_xp(
+                    player,
+                    orb["xp"]
+                )
+
+
+                remove.append(
+                    orb
+                )
+
+
+
+        for item in game["scrap"]:
+
+            if distance(
+                player,
+                item
+            ) < 30:
+
+
+                player["scrap"] += item["value"]
+
+                remove.append(
+                    item
+                )
+
+
+
+    for item in remove:
+
+        if item in game["orbs"]:
+            game["orbs"].remove(item)
+
+
+        if item in game["scrap"]:
+            game["scrap"].remove(item)
+
+
+
+    refill_orbs()
+
+
+
+# =========================================================
+# BUILDING
+# =========================================================
+
+
+def snap(value):
+
+    return round(
+        value / TILE_SIZE
+    ) * TILE_SIZE
+
+
+
+def build_structure(
+    player,
+    structure_type,
+    x,
+    y
+):
+
+    if structure_type not in STRUCTURES:
+        return False
+
+
+    info = STRUCTURES[
+        structure_type
+    ]
+
+
+    if player["scrap"] < info["cost"]:
+        return False
+
+
+
+    player["scrap"] -= info["cost"]
+
+
+
+    structure={
+
+        "id":str(uuid.uuid4()),
+
+        "owner":player["id"],
+
+        "type":structure_type,
+
+
+        "x":snap(x),
+
+        "y":snap(y),
+
+
+        "hp":info["hp"],
+
+        "max_hp":info["hp"]
+    }
+
+
+    game["structures"].append(
+        structure
+    )
+
+
+    return True
+
+
+
+# =========================================================
+# PLAYER MOVEMENT
+# =========================================================
+
+
+def update_players():
+
+    for player in game["players"].values():
+
+
+        player["x"] += (
+            player["vx"] *
+            player["speed"]
+        )
+
+
+        player["y"] += (
+            player["vy"] *
+            player["speed"]
+        )
+
+
+
+        player["x"] = max(
+            0,
+            min(
+                WORLD_SIZE,
+                player["x"]
+            )
+        )
+
+
+        player["y"] = max(
+            0,
+            min(
+                WORLD_SIZE,
+                player["y"]
+            )
+        )
+
+
+
+# =========================================================
+# MAIN GAME TICK
+# =========================================================
+
+
+def update_game():
+
+    rebuild_grids()
+
+    update_players()
+
+    update_resources()
+
+    update_projectiles()
+
+
+
+
+# =========================================================
+# HTTP SERVER
+# =========================================================
+
+
+class SiegeHandler(http.server.BaseHTTPRequestHandler):
+
+
+    def send_json(self,data):
+
+        self.send_response(200)
+
+        self.send_header(
+            "Content-Type",
+            "application/json"
+        )
+
+        self.send_header(
+            "Access-Control-Allow-Origin",
+            "*"
+        )
+
         self.end_headers()
 
-  def send_json(self, data):
-    self.send_response(200)
-    self.send_header("Content-Type", "application/json")
-    self.send_header("Access-Control-Allow-Origin", "*")
-    self.end_headers()
-    self.wfile.write(json.dumps(data).encode("utf-8"))
+
+        self.wfile.write(
+            json.dumps(data).encode()
+        )
 
 
-def run(server_class=http.server.HTTPServer, handler_class=GameServer, port=8000):
-  server_address = ("", port)
-  httpd = server_class(server_address, handler_class)
-  print(f"Siege Attack backend server active on http://localhost:{port}")
-  httpd.serve_forever()
+
+    def do_GET(self):
+
+        path = urllib.parse.urlparse(
+            self.path
+        ).path
 
 
-if __name__ == "__main__":
-  run()
+
+        # Serve game client
+
+        if path == "/" or path == "/index.html":
+
+            self.send_response(200)
+
+            self.send_header(
+                "Content-Type",
+                "text/html"
+            )
+
+            self.end_headers()
+
+
+            file = os.path.join(
+                os.path.dirname(__file__),
+                "public",
+                "index.html"
+            )
+
+
+            if os.path.exists(file):
+
+                with open(
+                    file,
+                    "rb"
+                ) as f:
+
+                    self.wfile.write(
+                        f.read()
+                    )
+
+            else:
+
+                self.wfile.write(
+                    b"Missing public/index.html"
+                )
+
+
+
+        # World snapshot
+
+        elif path == "/state":
+
+            with lock:
+
+                self.send_json({
+
+                    "players":
+                    list(
+                        game["players"].values()
+                    ),
+
+                    "structures":
+                    game["structures"],
+
+                    "projectiles":
+                    game["projectiles"],
+
+                    "orbs":
+                    game["orbs"],
+
+                    "scrap":
+                    game["scrap"]
+
+                })
+
+
+        else:
+
+            self.send_response(404)
+
+            self.end_headers()
+
+
+
+    def do_POST(self):
+
+        length=int(
+            self.headers.get(
+                "Content-Length",
+                0
+            )
+        )
+
+
+        try:
+
+            data=json.loads(
+                self.rfile.read(length)
+                .decode()
+            )
+
+        except:
+
+            data={}
+
+
+
+        path=urllib.parse.urlparse(
+            self.path
+        ).path
+
+
+
+        with lock:
+
+
+            # =====================================
+            # JOIN GAME
+            # =====================================
+
+            if path=="/join":
+
+
+                player=create_player()
+
+
+                pid=player["id"]
+
+
+                game["players"][pid]=player
+
+
+                self.send_json({
+
+                    "id":pid,
+
+                    "player":player
+
+                })
+
+
+
+            # =====================================
+            # PLAYER MOVEMENT
+            # =====================================
+
+            elif path=="/update":
+
+
+                pid=data.get(
+                    "id"
+                )
+
+
+                player=game["players"].get(
+                    pid
+                )
+
+
+                if player:
+
+
+                    player["vx"]=float(
+                        data.get(
+                            "vx",
+                            0
+                        )
+                    )
+
+
+                    player["vy"]=float(
+                        data.get(
+                            "vy",
+                            0
+                        )
+                    )
+
+
+
+                self.send_json(
+                    {
+                        "ok":True
+                    }
+                )
+
+
+
+            # =====================================
+            # SHOOTING
+            # =====================================
+
+            elif path=="/shoot":
+
+
+                pid=data.get(
+                    "id"
+                )
+
+
+                angle=float(
+                    data.get(
+                        "angle",
+                        0
+                    )
+                )
+
+
+                player=game["players"].get(
+                    pid
+                )
+
+
+                if player:
+
+                    game["projectiles"].append(
+                        create_projectile(
+                            player,
+                            angle
+                        )
+                    )
+
+
+
+                self.send_json(
+                    {
+                        "ok":True
+                    }
+                )
+
+
+
+            # =====================================
+            # BUILDING
+            # =====================================
+
+            elif path=="/build":
+
+
+                pid=data.get(
+                    "id"
+                )
+
+
+                player=game["players"].get(
+                    pid
+                )
+
+
+                if player:
+
+
+                    success=build_structure(
+
+                        player,
+
+                        data.get(
+                            "type"
+                        ),
+
+                        data.get(
+                            "x",
+                            player["x"]
+                        ),
+
+                        data.get(
+                            "y",
+                            player["y"]
+                        )
+                    )
+
+
+                    self.send_json({
+
+                        "built":success
+
+                    })
+
+
+                else:
+
+                    self.send_json({
+
+                        "built":False
+
+                    })
+
+
+
+            # =====================================
+            # REMOVE PLAYER
+            # =====================================
+
+            elif path=="/leave":
+
+
+                pid=data.get(
+                    "id"
+                )
+
+
+                if pid in game["players"]:
+
+                    del game["players"][pid]
+
+
+                self.send_json(
+                    {
+                        "ok":True
+                    }
+                )
+
+
+            else:
+
+                self.send_json(
+                    {
+                        "error":"unknown endpoint"
+                    }
+                )
+
+
+
+# =========================================================
+# GAME THREAD
+# =========================================================
+
+
+def server_loop():
+
+
+    while True:
+
+
+        start=time.time()
+
+
+        with lock:
+
+            update_game()
+
+
+        elapsed=time.time()-start
+
+
+        wait=TICK_TIME-elapsed
+
+
+        if wait>0:
+
+            time.sleep(
+                wait
+            )
+
+
+
+# =========================================================
+# START SERVER
+# =========================================================
+
+
+def run():
+
+    threading.Thread(
+        target=server_loop,
+        daemon=True
+    ).start()
+
+
+
+    server=http.server.ThreadingHTTPServer(
+
+        (
+            "",
+            8000
+        ),
+
+        SiegeHandler
+
+    )
+
+
+    print(
+        "Siege Attack running on http://localhost:8000"
+    )
+
+
+    server.serve_forever()
+
+
+
+if __name__=="__main__":
+
+    run()
+
