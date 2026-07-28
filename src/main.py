@@ -1,3 +1,4 @@
+
 import os
 import json
 import time
@@ -11,7 +12,7 @@ PUBLIC_DIR = os.path.join(BASE_DIR, 'public')
 players = {}
 bullets = []
 orbs = []
-castles = []
+structures = []
 MAP_WIDTH = 2500
 MAP_HEIGHT = 2500
 
@@ -27,30 +28,26 @@ for i in range(60):
 def update_game_physics():
     now = time.time()
     
-    # Update Castles (decay old ones)
-    for c in castles[:]:
-        if c['hp'] <= 0 or now > c['expire']:
-            castles.remove(c)
+    for s in structures[:]:
+        if s['hp'] <= 0 or now > s['expire']:
+            structures.remove(s)
 
-    # Physics & Bullets
     for b in bullets[:]:
         b['x'] += b['vx']
         b['y'] += b['vy']
         b['life'] -= 1
         
-        # Check collision with Castles
-        hit_castle = False
-        for c in castles[:]:
-            if math.hypot(b['x'] - c['x'], b['y'] - c['y']) < c['radius']:
-                c['hp'] -= b['damage']
+        hit_struct = False
+        for s in structures[:]:
+            if math.hypot(b['x'] - s['x'], b['y'] - s['y']) < s['radius']:
+                s['hp'] -= b['damage']
                 if b in bullets:
                     bullets.remove(b)
-                hit_castle = True
+                hit_struct = True
                 break
-        if hit_castle:
+        if hit_struct:
             continue
 
-        # Check collision with Players
         for pid, p in list(players.items()):
             if p['hp'] <= 0 or pid == b['owner'] or p.get('shield', False):
                 continue
@@ -64,28 +61,33 @@ def update_game_physics():
                     if killer:
                         killer['score'] += 300
                         killer['xp'] += 150
-                        if killer['xp'] >= killer['level'] * 150:
+                        next_xp = killer['level'] * 200
+                        if killer['xp'] >= next_xp and killer['level'] < 20:
                             killer['level'] += 1
-                            killer['maxHp'] += 20
+                            killer['maxHp'] += 15
                             killer['hp'] = killer['maxHp']
                 break
                 
         if b['life'] <= 0 and b in bullets:
             bullets.remove(b)
 
-    # Power Orbs
     for o in orbs[:]:
         for pid, p in list(players.items()):
             if p['hp'] <= 0:
                 continue
             if math.hypot(o['x'] - p['x'], o['y'] - p['y']) < 30:
                 if o['type'] == 'xp':
-                    p['xp'] += 35
-                    p['score'] += 35
+                    p['xp'] += 45
+                    p['score'] += 45
+                    next_xp = p['level'] * 200
+                    if p['xp'] >= next_xp and p['level'] < 20:
+                        p['level'] += 1
+                        p['maxHp'] += 15
+                        p['hp'] = p['maxHp']
                 elif o['type'] == 'health':
                     p['hp'] = min(p['maxHp'], p['hp'] + 40)
                 elif o['type'] == 'speed':
-                    p['speed'] = min(9.0, p['speed'] + 0.5)
+                    p['speed'] = min(9.0, p['speed'] + 0.4)
                 elif o['type'] == 'damage':
                     p['damageBoost'] = 2.0
                 
@@ -124,13 +126,11 @@ class SiegeGameHandler(SimpleHTTPRequestHandler):
 
         if self.path == '/api/join':
             pid = f"p_{int(now * 1000)}_{random.randint(100, 999)}"
-            hero_class = data.get('class', 'Attacker')
-            base_hp = 180 if hero_class == 'Defender' else (90 if hero_class == 'Scout' else 110)
+            base_hp = 120
             
             players[pid] = {
                 'id': pid,
                 'name': data.get('name', 'Hero')[:12],
-                'class': hero_class,
                 'x': random.randint(300, MAP_WIDTH - 300),
                 'y': random.randint(300, MAP_HEIGHT - 300),
                 'angle': 0,
@@ -139,12 +139,12 @@ class SiegeGameHandler(SimpleHTTPRequestHandler):
                 'level': 1,
                 'xp': 0,
                 'score': 0,
-                'speed': 4.5 if hero_class == 'Defender' else (7.5 if hero_class == 'Scout' else 5.5),
+                'speed': 5.5,
                 'shield': True,
                 'shieldEnd': now + 3.0,
                 'damageBoost': 1.0,
                 'lastActive': now,
-                'lastCastle': 0
+                'lastBuild': 0
             }
             response = {
                 'id': pid, 
@@ -152,7 +152,7 @@ class SiegeGameHandler(SimpleHTTPRequestHandler):
                 'mapHeight': MAP_HEIGHT,
                 'players': players,
                 'orbs': orbs,
-                'castles': castles
+                'structures': structures
             }
 
         elif self.path == '/api/update':
@@ -175,40 +175,51 @@ class SiegeGameHandler(SimpleHTTPRequestHandler):
                             'owner': pid,
                             'x': p['x'] + math.cos(angle) * 25,
                             'y': p['y'] + math.sin(angle) * 25,
-                            'vx': math.cos(angle) * 15,
-                            'vy': math.sin(angle) * 15,
-                            'damage': 18 * p['damageBoost'],
+                            'vx': math.cos(angle) * 16,
+                            'vy': math.sin(angle) * 16,
+                            'damage': 20 * p['damageBoost'],
                             'life': 45
                         })
 
-                    # Build Castle Ability (Defender class or special action)
-                    if data.get('buildCastle') and (p['class'] == 'Defender' or p['level'] >= 3):
-                        if now - p.get('lastCastle', 0) > 8.0:
-                            p['lastCastle'] = now
-                            castles.append({
-                                'id': f"c_{pid}_{now}",
+                    if data.get('buildItem'):
+                        if now - p.get('lastBuild', 0) > 1.5:
+                            p['lastBuild'] = now
+                            b_type = data.get('buildType', 'Wood Wall')
+                            hp_map = {
+                                'Wood Wall': 150, 'Stone Wall': 300, 'Iron Wall': 500,
+                                'Spike Trap': 100, 'Gate': 200, 'Healing Totem': 120,
+                                'Speed Pad': 100, 'Mini Turret': 250, 'Shield Gen': 300,
+                                'Mine': 80, 'Radar Tower': 200, 'Barbed Wire': 150,
+                                'Bounce Pad': 100, 'Ammo Station': 200, 'Flame Trap': 150,
+                                'Ice Trap': 150, 'Teleporter': 250, 'Mortar': 300,
+                                'Tesla Coil': 280, 'Vault': 600
+                            }
+                            max_h = hp_map.get(b_type, 200)
+                            structures.append({
+                                'id': f"s_{pid}_{now}",
                                 'owner': pid,
+                                'type': b_type,
                                 'x': p['x'],
                                 'y': p['y'],
-                                'hp': 300,
-                                'maxHp': 300,
-                                'radius': 45,
-                                'expire': now + 25.0
+                                'hp': max_h,
+                                'maxHp': max_h,
+                                'radius': 40,
+                                'expire': now + 45.0
                             })
                 else:
-                    # Player dead - purge from server pool so no ghosts remain
-                    del players[pid]
+                    if pid in players:
+                        del players[pid]
 
-            # Inactive player timeout cleanup
             for key, player in list(players.items()):
                 if now - player.get('lastActive', 0) > 5.0 or player.get('hp', 0) <= 0:
-                    del players[key]
+                    if key in players:
+                        del players[key]
 
             response = {
                 'players': players,
                 'bullets': bullets,
                 'orbs': orbs,
-                'castles': castles
+                'structures': structures
             }
 
         self.send_response(200)
