@@ -1,31 +1,58 @@
-import asyncio
 import json
-import websockets
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# Keep track of all connected clients
-connected_clients = set()
-
-
-async def handle_client(websocket):
-  connected_clients.add(websocket)
-  try:
-    async for message in websocket:
-      # Parse movement data from a client and broadcast to others
-      data = json.loads(message)
-      for client in connected_clients:
-        if client != websocket:
-          await client.send(json.dumps(data))
-  except websockets.exceptions.ConnectionClosed:
-    pass
-  finally:
-    connected_clients.remove(websocket)
+# Dictionary to hold player positions in memory
+players = {}
 
 
-async def main():
-  print("Starting WebSocket server on ws://localhost:8765...")
-  async with websockets.serve(handle_client, "localhost", 8765):
-    await asyncio.Future()  # Run forever
+class GameServer(BaseHTTPRequestHandler):
+
+  def do_OPTIONS(self):
+    # Handle CORS preflight requests from GitHub Pages
+    self.send_response(200)
+    self.send_header("Access-Control-Allow-Origin", "*")
+    self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    self.send_header("Access-Control-Allow-Headers", "Content-Type")
+    self.end_headers()
+
+  def do_POST(self):
+    content_length = int(self.headers.get("Content-Length", 0))
+    post_data = self.rfile.read(content_length)
+    try:
+      data = json.loads(post_data.decode("utf-8"))
+      player_id = data.get("id")
+      if player_id:
+        players[player_id] = {
+            "x": data.get("x", 0),
+            "y": data.get("y", 0),
+            "z": data.get("z", 0),
+        }
+
+      self.send_response(200)
+      self.send_header("Access-Control-Allow-Origin", "*")
+      self.send_header("Content-Type", "application/json")
+      self.end_headers()
+      self.wfile.write(json.dumps({"status": "success"}).encode("utf-8"))
+    except Exception as e:
+      self.send_response(400)
+      self.send_header("Access-Control-Allow-Origin", "*")
+      self.end_headers()
+
+  def do_GET(self):
+    # Return all player positions to the client
+    self.send_response(200)
+    self.send_header("Access-Control-Allow-Origin", "*")
+    self.send_header("Content-Type", "application/json")
+    self.end_headers()
+    self.wfile.write(json.dumps(players).encode("utf-8"))
+
+
+def run(server_class=HTTPServer, handler_class=GameServer, port=8080):
+  server_address = ("", port)
+  httpd = server_class(server_address, handler_class)
+  print(f"Starting HTTP game server on port {port}...")
+  httpd.serve_forever()
 
 
 if __name__ == "__main__":
-  asyncio.run(main())
+  run()
