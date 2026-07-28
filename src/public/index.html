@@ -7,7 +7,11 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0e14; font-family: sans-serif; color: #fff; }
-    #gameCanvas { display: block; width: 100vw; height: 100vh; background: #121721; }
+    
+    #gameCanvas {
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #0f172a; z-index: 1; display: block;
+    }
     
     #startScreen, #deathScreen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -23,16 +27,16 @@
     .btn { width: 100%; padding: 12px; background: #00d2ff; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
     #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-    #leaderboard { position: absolute; top: 20px; right: 20px; background: rgba(15, 21, 34, 0.75); padding: 15px; border-radius: 8px; width: 200px; }
+    #leaderboard { position: absolute; top: 20px; right: 20px; background: rgba(15, 21, 34, 0.85); padding: 15px; border-radius: 8px; width: 200px; border: 1px solid #2e3c56; }
     #leaderboard h3 { font-size: 0.9rem; text-transform: uppercase; color: #88a0c0; margin-bottom: 8px; }
     .leader-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; }
     
     #bottomStats { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .bar-container { width: 300px; height: 16px; background: rgba(0,0,0,0.5); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); position: relative; }
+    .bar-container { width: 300px; height: 16px; background: rgba(0,0,0,0.6); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); position: relative; }
     .bar-fill { height: 100%; width: 100%; transition: width 0.15s ease-out; }
     #hpFill { background: #2ed573; }
     #xpFill { background: #eccc68; }
-    .bar-text { position: absolute; width: 100%; text-align: center; font-size: 0.7rem; font-weight: bold; line-height: 16px; }
+    .bar-text { position: absolute; width: 100%; text-align: center; font-size: 0.7rem; font-weight: bold; line-height: 16px; text-shadow: 1px 1px 2px #000; }
     
     #minimap { position: absolute; bottom: 20px; right: 20px; width: 140px; height: 140px; background: rgba(15, 21, 34, 0.85); border: 2px solid #2e3c56; border-radius: 8px; }
   </style>
@@ -80,6 +84,245 @@
     </div>
   </div>
 
-  <script src="client.js"></script>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const minimapCanvas = document.getElementById('minimap');
+    const mctx = minimapCanvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      minimapCanvas.width = 140;
+      minimapCanvas.height = 140;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let myId = null;
+    let selectedClass = 'Attacker';
+    let players = {};
+    let bullets = [];
+    let orbs = [];
+    let mapWidth = 2500;
+    let mapHeight = 2500;
+
+    let wantShoot = false;
+    let shootAngle = 0;
+    let syncInterval = null;
+
+    const keys = {};
+    const mouse = { x: 0, y: 0, worldX: 0, worldY: 0 };
+
+    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+    window.addEventListener('mousemove', e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+    window.addEventListener('mousedown', e => {
+      if (e.button === 0 && myId && players[myId] && players[myId].hp > 0) {
+        wantShoot = true;
+        const p = players[myId];
+        shootAngle = Math.atan2(mouse.worldY - p.y, mouse.worldX - p.x);
+      }
+    });
+
+    function selectClass(className, btn) {
+      selectedClass = className;
+      document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    async function joinGame() {
+      const name = document.getElementById('playerName').value || 'Hero';
+      try {
+        const res = await fetch('/api/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, class: selectedClass })
+        });
+        const data = await res.json();
+        myId = data.id;
+        mapWidth = data.mapWidth;
+        mapHeight = data.mapHeight;
+        players = data.players || {};
+        orbs = data.orbs || [];
+        
+        document.getElementById('startScreen').style.display = 'none';
+        startSyncLoop();
+      } catch(e) {
+        console.error("Failed to join game:", e);
+      }
+    }
+
+    function respawn() {
+      document.getElementById('deathScreen').style.display = 'none';
+      joinGame();
+    }
+
+    function startSyncLoop() {
+      if (syncInterval) clearInterval(syncInterval);
+
+      syncInterval = setInterval(async () => {
+        if (!myId) return;
+        const p = players[myId];
+        
+        let currentX = mapWidth / 2;
+        let currentY = mapHeight / 2;
+
+        if (p && p.hp > 0) {
+          let dx = 0, dy = 0;
+          if (keys['w'] || keys['arrowup']) dy -= 1;
+          if (keys['s'] || keys['arrowdown']) dy += 1;
+          if (keys['a'] || keys['arrowleft']) dx -= 1;
+          if (keys['d'] || keys['arrowright']) dx += 1;
+          
+          if (dx !== 0 || dy !== 0) {
+            const len = Math.hypot(dx, dy);
+            p.x += (dx / len) * p.speed;
+            p.y += (dy / len) * p.speed;
+          }
+          currentX = p.x;
+          currentY = p.y;
+        }
+
+        mouse.worldX = mouse.x - canvas.width / 2 + currentX;
+        mouse.worldY = mouse.y - canvas.height / 2 + currentY;
+        const angle = Math.atan2(mouse.worldY - currentY, mouse.worldX - currentX);
+
+        const payload = {
+          id: myId,
+          x: currentX,
+          y: currentY,
+          angle: angle,
+          shoot: wantShoot,
+          shootAngle: shootAngle
+        };
+        wantShoot = false;
+
+        try {
+          const res = await fetch('/api/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const state = await res.json();
+          players = state.players || {};
+          bullets = state.bullets || [];
+          orbs = state.orbs || [];
+
+          if (players[myId] && players[myId].hp <= 0) {
+            document.getElementById('deathScreen').style.display = 'flex';
+          }
+          updateHUD();
+        } catch(err) {
+          console.error("Sync error:", err);
+        }
+      }, 50);
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const self = players[myId] || { x: mapWidth / 2, y: mapHeight / 2 };
+      
+      ctx.save();
+      ctx.translate(canvas.width / 2 - self.x, canvas.height / 2 - self.y);
+      
+      // High-Contrast Arena Grid
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      for (let x = 0; x <= mapWidth; x += 100) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, mapHeight); ctx.stroke();
+      }
+      for (let y = 0; y <= mapHeight; y += 100) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mapWidth, y); ctx.stroke();
+      }
+
+      // Orbs
+      orbs.forEach(o => {
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = o.type === 'health' ? '#10b981' : (o.type === 'speed' ? '#f59e0b' : (o.type === 'damage' ? '#ef4444' : '#3b82f6'));
+        ctx.fill();
+      });
+
+      // Bullets
+      bullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#f97316';
+        ctx.fill();
+      });
+
+      // Players
+      Object.values(players).forEach(p => {
+        if (p.hp <= 0) return;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        
+        if (p.shield) {
+          ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2);
+          ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3; ctx.stroke();
+        }
+
+        ctx.rotate(p.angle);
+        ctx.fillStyle = p.class === 'Defender' ? '#f59e0b' : (p.class === 'Scout' ? '#10b981' : '#0284c7');
+        ctx.fillRect(-20, -20, 40, 40);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, -5, 28, 10);
+        ctx.restore();
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${p.name} [Lv.${p.level}]`, p.x, p.y - 32);
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(p.x - 25, p.y - 26, 50, 6);
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(p.x - 25, p.y - 26, (p.hp / p.maxHp) * 50, 6);
+      });
+
+      ctx.restore();
+      
+      // Minimap Rendering
+      mctx.clearRect(0, 0, 140, 140);
+      const scaleX = 140 / mapWidth;
+      const scaleY = 140 / mapHeight;
+      Object.values(players).forEach(p => {
+        if (p.hp <= 0) return;
+        mctx.fillStyle = p.id === myId ? '#10b981' : '#ef4444';
+        mctx.beginPath();
+        mctx.arc(p.x * scaleX, p.y * scaleY, 3, 0, Math.PI * 2);
+        mctx.fill();
+      });
+
+      requestAnimationFrame(render);
+    }
+
+    function updateHUD() {
+      if (!myId || !players[myId]) return;
+      const p = players[myId];
+      document.getElementById('hpFill').style.width = `${Math.max(0, (p.hp / p.maxHp) * 100)}%`;
+      document.getElementById('hpText').innerText = `HP: ${Math.ceil(p.hp)} / ${p.maxHp}`;
+      
+      const xpNeeded = p.level * 150;
+      document.getElementById('xpFill').style.width = `${Math.min(100, (p.xp / xpNeeded) * 100)}%`;
+      document.getElementById('xpText').innerText = `LEVEL ${p.level} (${p.class.toUpperCase()})`;
+
+      const sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0, 5);
+      const list = document.getElementById('leaderList');
+      list.innerHTML = '';
+      sorted.forEach((lp, i) => {
+        const row = document.createElement('div');
+        row.className = 'leader-row';
+        row.innerHTML = `<span>${i+1}. ${lp.name}</span><strong>${lp.score}</strong>`;
+        list.appendChild(row);
+      });
+    }
+
+    requestAnimationFrame(render);
+  </script>
 </body>
 </html>
