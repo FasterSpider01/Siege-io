@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>3D Multiplayer Game</title>
+    <title>3D Multiplayer Game - HTTP Polling</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -12,6 +11,9 @@
 <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        // REPLACE THIS with your actual Wasmer deployment URL
+        const SERVER_URL = 'https://your-wasmer-app-url.wasmer.app';
+
         // Setup Scene, Camera, and Renderer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -34,34 +36,58 @@
         camera.position.z = 5;
 
         // Generate a random ID for this player
-        const playerId = Math.random().toString(36.substring(2, 9));
+        const playerId = Math.random().toString(36).substring(2, 9);
         const otherPlayers = {};
 
-        // Connect to Python WebSocket Server
-        const ws = new WebSocket('ws://localhost:8765');
-
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            
-            // If it's a new player, create their mesh (Red Cube)
-            if (!otherPlayers[data.id]) {
-                const oGeometry = new THREE.BoxGeometry();
-                const oMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-                const oMesh = new THREE.Mesh(oGeometry, oMaterial);
-                scene.add(oMesh);
-                otherPlayers[data.id] = oMesh;
-            }
-
-            // Update other player's position
-            otherPlayers[data.id].position.set(data.x, data.y, data.z);
-        };
-
-        // Handle Keyboard Inputs
         const speed = 0.1;
         const keys = {};
 
         window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+        // Send local position to the Wasmer server via HTTP POST
+        async function sendPosition() {
+            try {
+                await fetch(SERVER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: playerId,
+                        x: player.position.x,
+                        y: player.position.y,
+                        z: player.position.z
+                    })
+                });
+            } catch (err) {
+                console.error('Failed to send position:', err);
+            }
+        }
+
+        // Fetch other players' positions from the Wasmer server via HTTP GET
+        async function fetchPlayers() {
+            try {
+                const response = await fetch(SERVER_URL);
+                const data = await response.json();
+
+                for (const id in data) {
+                    if (id === playerId) continue;
+
+                    // If it's a new player, create their red cube mesh
+                    if (!otherPlayers[id]) {
+                        const oGeometry = new THREE.BoxGeometry();
+                        const oMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                        const oMesh = new THREE.Mesh(oGeometry, oMaterial);
+                        scene.add(oMesh);
+                        otherPlayers[id] = oMesh;
+                    }
+
+                    // Update other player's position
+                    otherPlayers[id].position.set(data[id].x, data[id].y, data[id].z);
+                }
+            } catch (err) {
+                console.error('Failed to fetch players:', err);
+            }
+        }
 
         function animate() {
             requestAnimationFrame(animate);
@@ -72,20 +98,17 @@
             if (keys['a']) { player.position.x -= speed; moved = true; }
             if (keys['d']) { player.position.x += speed; moved = true; }
 
-            // Send position to server if moved
-            if (moved && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    id: playerId,
-                    x: player.position.x,
-                    y: player.position.y,
-                    z: player.position.z
-                }));
+            if (moved) {
+                sendPosition();
             }
 
             renderer.render(scene, camera);
         }
 
         animate();
+
+        // Poll the server every 100ms to sync positions
+        setInterval(fetchPlayers, 100);
 
         // Handle window resizing
         window.addEventListener('resize', () => {
